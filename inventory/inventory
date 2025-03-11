@@ -1,0 +1,11 @@
+[windows]
+
+[windows:children]
+ad-servers
+
+[ad-servers]
+server-1.default.libvirt ansible_user=will ansible_password={{ lookup("env", "SERVER_1_PASSWORD") }} first_node=true
+; #server-2.default.libvirt ansible_user=will ansible_password=Yeudeev3xie4seisahk5
+
+[ad-clients]
+w10-client.default.libvirt ansible_user=will ansible_password={{ lookup("env", 'W10_CLIENT_PASSWORD' )}}

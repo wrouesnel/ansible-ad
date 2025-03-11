@@ -1,0 +1,33 @@
+- hosts: ad-servers
+  #become: yes
+  tasks:
+  - name: Configure domain groups
+    microsoft.ad.group:
+      identity: "{{item.key}}"
+      scope: global
+      state: present
+      description: "{{item.value.description}}"
+    loop: "{{ad_groups|dict2items}}"
+
+  #- name: Configure domain security policy
+
+  - name: Ensure users exist
+    microsoft.ad.user:
+      identity: "{{item.key}}"
+      password: "{{item.value.password}}"
+      state: present
+      groups: 
+        set: "{{item.value.groups}}"
+      # Extras
+      firstname: "{{item.value.details.firstname}}"
+      surname: "{{item.value.details.surname}}"
+      display_name: "{{item.value.details.display_name}}"
+      company: "{{item.value.details.company}}"
+      street: "{{item.value.details.street}}"
+      city: "{{item.value.details.city}}"
+      postal_code: "{{item.value.details.postal_code}}"
+      country: "{{item.value.details.country}}"
+      email: "{{item.value.details.email}}"
+      attributes: 
+        set: "{{item.value.details.attributes}}"
+    loop: "{{ad_users|dict2items}}"

@@ -1,0 +1,59 @@
+---
+# Deploy GPO to the domain 
+- hosts: ad-servers
+  #become: yes
+  tasks:
+  - name: Get temporary
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        ${env:TEMP}
+    register: temp_dir
+
+  - name: Copy archived GPOs
+    ansible.windows.win_copy:
+      src: "{{ item }}"
+      dest: "{{ temp_dir.output|first }}"
+    loop: "{{ query('fileglob', playbook_dir + '/files/gpo/*.zip') }}"
+
+  - name: Delete any existing extraction directories
+    ansible.windows.win_file:
+      path: "{{ [ temp_dir.output|first, (item|basename).split('.')|first ] | path_join }}"
+      state: absent
+    loop: "{{ query('fileglob', playbook_dir + '/files/gpo/*.zip') }}"
+
+  - name: Create extraction directories for archived GPOs
+    ansible.windows.win_file:
+      path: "{{ [ temp_dir.output|first, (item|basename).split('.')|first ] | path_join }}"
+      state: directory
+    loop: "{{ query('fileglob', playbook_dir + '/files/gpo/*.zip') }}"
+
+  - name: Unarchive the GPO
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        Expand-Archive `
+          -LiteralPath "{{ [temp_dir.output|first, item|basename]|path_join }}" `
+          -DestinationPath "{{ [temp_dir.output|first, (item|basename).split('.')|first ]|path_join }}"
+    loop: "{{ query('fileglob', playbook_dir + '/files/gpo/*.zip') }}"
+
+  - name: Import GPOs
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        Import-GPO `
+          -BackupId (Get-ChildItem -Directory "{{ [temp_dir.output|first, (item|basename).split('.')|first ]|path_join }}").Name `
+          -TargetName "{{(item|basename).split('.')|first}}" `
+          -Path "{{ temp_dir.output|first }}\{{ (item|basename).split('.')|first }}" `
+          -CreateIfNeeded
+    loop: "{{ query('fileglob', playbook_dir + '/files/gpo/*.zip') }}"
+
+  - name: Link GPOs
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        New-GPLink `
+          -Name "{{(item|basename).split('.')|first}}" `
+          -Target (Get-ADDomain).DistinguishedName
+    failed_when: false
+    loop: "{{ query('fileglob', playbook_dir + '/files/gpo/*.zip') }}"

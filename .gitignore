@@ -1,0 +1,10 @@
+*.orig
+*.retry
+*.pyc
+*.bak
+
+/.idea
+/.vscode
+/.mypy_cache
+
+/secrets

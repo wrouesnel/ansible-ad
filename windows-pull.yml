@@ -1,0 +1,54 @@
+---
+# Pull configurations from Windows which can't be easily locally generated
+# Configure user accounts and other AD settings after provisioning
+- hosts: ad-servers
+  #become: yes
+  tasks:
+  - name: Get temporary
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        ${env:TEMP}
+    register: temp_dir
+
+  - name: List current GPOs
+    ansible.windows.win_powershell:
+      script: |
+        Get-GPO -All `
+        | Select-Object -Property DisplayName, Id `
+        | Where-Object { ("Default Domain Policy", "Default Domain Controllers Policy") -notcontains  $_.DisplayName }  
+    register: gpos
+
+  - name: Clear old backup directories
+    ansible.windows.win_file:
+      path: "{{ [ temp_dir.output|first, item.DisplayName ] | path_join }}"
+      state: absent
+    loop: "{{ gpos.output }}"
+
+  - name: Create backup directories
+    ansible.windows.win_file:
+      path: "{{ [ temp_dir.output|first, item.DisplayName ] | path_join }}"
+      state: directory
+    loop: "{{ gpos.output }}"
+
+  - name: Backup GPOs remotely
+    ansible.windows.win_powershell:
+      script: |
+        Backup-GPO -Guid {{ item.Id }} -Path "{{ [ temp_dir.output|first, item.DisplayName ] | path_join }}"
+    loop: "{{ gpos.output }}"
+    register: gpo_backups
+
+  - name: Compress GPO backups
+    ansible.windows.win_powershell:
+      script: |
+        Remove-Item -Force "{{temp_dir.output|first}}\{{item.DisplayName + '.zip'}}"
+        [Reflection.Assembly]::LoadWithPartialName( "System.IO.Compression.FileSystem" )
+        [System.IO.Compression.ZipFile]::CreateFromDirectory("{{temp_dir.output|first}}\{{item.DisplayName}}","{{temp_dir.output|first}}\{{item.DisplayName + '.zip'}}")
+    loop: "{{ gpos.output }}"
+
+  - name: Download remote backups
+    fetch:
+      src: "{{ [ temp_dir.output|first, item.DisplayName + '.zip' ] | path_join }}"
+      dest: "{{ [  playbook_dir, 'files', 'gpo' ] | path_join }}/"
+      flat: true
+    loop: "{{ gpos.output }}"

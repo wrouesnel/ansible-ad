@@ -1,0 +1,61 @@
+- hosts: windows
+  #become: yes
+  tasks:
+  - name: Install BitLocker
+    win_feature:
+      name:
+      - BitLocker
+      include_management_tools: true
+      include_sub_features: true
+    register: bitlocker_installed
+
+  - name: Reboot if needed
+    win_reboot:
+    when: bitlocker_installed.changed
+
+  # Ensure the TPM is ready
+  - name: Get TPM facts
+    win_tpm_facts:
+  
+  - name: Initialize the TPM if needed
+    ansible.windows.win_powershell:
+      script: |
+        Initialize-Tpm
+    when: not ansible_tpm.TpmOwned
+
+  # Enable BitLocker
+  - name: Get current Bitlocker status
+    win_bitlocker:
+      mount: 'C:'
+    register: bitlocker_status
+
+  - name: Enable BitLocker with TPM
+    win_bitlocker:
+      mount: 'C:'
+      state: enabled
+      keyprotector: TpmProtector
+    when: not (1 in (bitlocker_status.status.KeyProtector | map(attribute="KeyProtectorType")))
+
+  - name: Enable BitLocker with RecoveryKey
+    win_bitlocker:
+      mount: 'C:'
+      state: enabled
+      keyprotector: RecoveryPasswordProtector
+    when: not (3 in (bitlocker_status.status.KeyProtector | map(attribute="KeyProtectorType")))
+
+  - name: Update BitLocker Status
+    win_bitlocker:
+      mount: 'C:'
+    register: new_bitlocker_status
+
+  - name: Get current recovery key
+    local_action:
+      module: copy
+      dest: "{{ secrets_dir }}/{{ inventory_hostname }}.recoverykey"
+      content: '{{ new_bitlocker_status.status.KeyProtector | selectattr("KeyProtectorType", "equalto", 3) | map(attribute="RecoveryPassword") | first }}'
+    
+  - name: Reboot to start disk encryption
+    win_reboot:
+    when: new_bitlocker_status.status.EncryptionPercentage == 0
+
+  # Finish BitLocker #

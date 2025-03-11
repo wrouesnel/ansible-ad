@@ -1,0 +1,5 @@
+
+- import_playbook: windows-common.yml
+- import_playbook: windows-ad-initialize.yml
+- import_playbook: windows-ad-users.yml
+- import_playbook: windows-ad-policy.yml

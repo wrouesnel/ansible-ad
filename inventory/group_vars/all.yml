@@ -1,0 +1,76 @@
+# Directory we save generated secrets too (i.e. BitLocker keys and such)
+secrets_dir: "{{ playbook_dir }}/secrets"
+
+# This is here because in the virtual environment we don't have full control
+# dns_servers:
+# - "192.168.122.248"
+
+ad:
+  domain_name: default.libvirt
+
+  safe_mode_password: 1safe_mode_password%
+  domain_admin_username: Administrator
+  domain_admin_password: 2domain_admin_password%
+
+  # cluster:
+  #   name: lcgp
+  #   retry_interval_sec: 1
+  #   retry_count: 300
+
+ad_groups:
+  Desktop Admins:
+    description: Desktop Machine Administrators
+
+  # https://learn.microsoft.com/en-us/windows-server/storage/folder-redirection/deploy-roaming-user-profiles
+  Roaming Users:
+    description: Group for Roaming Security Profiles
+
+ad_users:
+  "john.everyman":
+    details:
+      firstname: John
+      surname: Everyman
+      display_name: John Everyman
+      company: Some Type of Company
+      street: 1 Not A Real Address
+      city: Sydney
+      postal_code: "2000"
+      country: AU
+      email: john.everyman@sometypeofcompany.com
+      attributes:
+        telephoneNumber: +61 555 111 444
+        profilePath: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
+        homeDirectory: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
+        homeDrive: "Z:"
+    password: 389PassGoHome@
+    groups:
+    - Domain Users
+    - Remote Desktop Users
+    - Roaming Users
+
+  "jane.desktopadmin":
+    details:
+      firstname: Jane
+      surname: DesktopAdmin
+      display_name: John DesktopAdmin
+      company: Some Type of Company
+      street: 1 Not A Real Address
+      city: Sydney
+      postal_code: "2000"
+      country: AU
+      email: jane.desktopadmin@sometypeofcompany.com
+      attributes:
+        telephoneNumber: +61 555 111 443
+        profilePath: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
+        homeDirectory: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
+        homeDrive: "Z:"
+    password: 1JanesPassword@
+    groups:
+    - Domain Users
+    - Remote Desktop Users
+    - Desktop Admins
+    - Roaming Users
+
+ad_gpo:
+  "Enable Remote Desktop":
+    

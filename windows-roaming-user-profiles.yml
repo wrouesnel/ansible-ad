@@ -1,0 +1,27 @@
+- hosts: ad-servers
+  #become: yes
+  tasks:
+  - ansible.windows.win_file:
+      path: "C:\\Share"
+      state: directory
+
+  - ansible.windows.win_file:
+      path: "C:\\Share\\User Profiles$"
+      state: directory
+
+  - ansible.windows.win_acl:
+      path: "C:\\Share\\User Profiles$"
+      user: Roaming Users
+      type: allow
+      state: present
+      rights: ListDirectory,ReadData,CreateFiles,WriteData,AppendData
+
+  - ansible.windows.win_share:
+      path: "C:\\Share\\User Profiles$"
+      state: present
+      name: "UserProfiles$"
+      encrypt: true
+      list: true
+      full: Everyone
+      change: Everyone
+      read: Everyone

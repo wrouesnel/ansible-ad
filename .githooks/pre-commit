@@ -1,0 +1,67 @@
+#!/bin/bash
+# Repository general commit hook
+
+# Basic principles: get the list of changed files so users can work with
+# an inconsistent repository.
+
+source include.sh
+
+log "Pre-Commit"
+
+# NOTE: None of the Python tools we have apply exclusions to their command line
+# and the bigger logic here is that CI will never make this distinction anyway. So
+# we *don't* at the moment use the below list in anyway. A better solution would be
+# to callout to a Python script which could parse all the different exclude specs.
+
+files_in_commit=()
+while read -r fileline; do
+    commit_file="$(echo "$fileline" | cut -f2-)"
+    files_in_commit+=( "$commit_file" )
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
+# Queue up return codes so we always run all pre-commits.
+retcode=0
+
+# ./fmt automatically (it's just annoying not to)
+
+if [ -e ./fmt ]; then
+    if ! ./fmt "${files_in_commit[@]}"; then
+        error "Code-formatting failed."
+        retcode=1
+    fi
+fi
+
+if ! git add "${files_in_commit[@]}"; then
+    # This should never happen.
+    fatal 1 "Error adding modified files back to commit"
+fi
+
+if [ -e ./lint ]; then
+    if ! ./lint "${files_in_commit[@]}"; then
+        error "Lint errors. Use git commit --no-verify to ignore."
+        retcode=1
+    fi
+fi
+
+if [ -e ./typecheck ]; then
+    if ! ./typecheck "${files_in_commit[@]}"; then
+        error "Lint errors. Use git commit --no-verify to ignore."
+        retcode=1
+    fi
+fi
+
+# Export the poetry config to requirements.txt
+if ! uv export --format=requirements-txt > requirements.txt ; then
+    error "Could not export uv.lock to requirements.txt. Use git commit --no-verify to ignore".
+    retcode=1
+fi
+
+if ! git add requirements.txt ; then
+    fatal 1 "Error adding requirements.txt back to the commit"
+fi
+
+if [ $retcode != 0 ]; then
+    fatal $retcode "Pre-commit hooks failed"
+fi
+
+exit 0

@@ -1,0 +1,24 @@
+# Setup Bitlocker if enable
+- import_playbook: windows-bitlocker.yml
+  when: enable_bitlocker|default(False)
+
+- hosts: ad-servers
+  #become: yes
+  tasks:
+  - name: Set local administrator account to domain admin account password
+    win_user:
+      name: Administrator
+      password: "{{ ad.domain_admin_password }}"
+      password_expired: false
+      password_never_expires: true
+      account_disabled: false
+      account_locked: false
+    when: first_node|default(False)
+
+  - name: Create new domain in a new forest on the target host and reboot
+    microsoft.ad.domain:
+      dns_domain_name: "{{ ad.domain_name }}"
+      safe_mode_password: "{{ ad.safe_mode_password }}"
+      reboot: true
+    when: first_node|default(False)
+

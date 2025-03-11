@@ -1,0 +1,12 @@
+# Basic list of packages to install via chocolatey
+---
+- hosts: windows
+  #become: yes
+  tasks:
+  - name: Install basic chocolatey packages
+    win_chocolatey:
+      name: "{{item}}"
+      state: latest
+    loop:
+    - vscode
+    - firefox
