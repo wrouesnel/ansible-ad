@@ -1,7 +1,7 @@
 ---
 # Add the sudo schema
 - hosts: ad-servers
-  run_once:
+  run_once: true
   tasks:
   - name: Copy sudo schema to guest
     win_copy:
@@ -19,3 +19,20 @@
     changed_when: schema.rc == 0
     with_items:
     - sudo
+
+- hosts: ad-servers
+  run_once: true
+  tasks:
+  - name: Add the sudo OU
+    microsoft.ad.ou:
+      name: sudoers
+      path: "{{ad_dc}}"
+      state: present
+      protect_from_deletion: true
+
+  - name: Add the autofs OU
+    microsoft.ad.ou:
+      name: autofs
+      path: "{{ad_dc}}"
+      state: present
+      protect_from_deletion: true

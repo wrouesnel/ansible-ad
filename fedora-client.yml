@@ -1,6 +1,9 @@
 - hosts: fedora-clients
   become: yes
   tasks:
+  # package
+  # krb5-workstation
+
   # check for realm membership
 
   # join realm
