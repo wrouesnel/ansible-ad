@@ -1,0 +1,32 @@
+- hosts: fedora-clients
+  become: yes
+  tasks:
+  # check for realm membership
+
+  # join realm
+
+  # authselect and enable additional features:
+  # with-libvirt
+  # with-mkhomedir
+  # with-pam-gnome-keyring
+  # with-smartcard
+  # with-subid
+  # with-tlog
+  - command: authselect enable-feature
+    loop:
+    - with-libvirt
+    - with-mkhomedir
+    - with-pam-gnome-keyring
+    - with-smartcard
+    - with-subid
+    - with-tlog
+
+  # sssd.conf
+  # [sssd]
+  # default_domain_suffix = default.libvirt
+  # services = nss, pam, ssh, sudo, autofs
+  # default
+  # [pam]
+  # pam_cert_auth =	True
+  # [session_recording]
+  # TODO

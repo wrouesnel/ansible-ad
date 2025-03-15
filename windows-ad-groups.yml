@@ -1,0 +1,10 @@
+- hosts: ad-servers
+  #become: yes
+  tasks:
+  - name: Configure domain groups
+    microsoft.ad.group:
+      identity: "{{item.key}}"
+      scope: global
+      state: present
+      description: "{{item.value.description}}"
+    loop: "{{ad_groups|dict2items}}"

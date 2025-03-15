@@ -1,0 +1,12 @@
+- hosts: windows-clients
+  #become: yes
+  tasks:
+  - name: join host to domain automatic reboot
+    microsoft.ad.membership:
+      dns_domain_name: "{{ad.domain_name}}"
+      hostname: "{{inventory_hostname|split('.')|first}}"
+      domain_admin_user: "{{ ad.domain_admin_username }}@{{ ad.domain_name }}"
+      domain_admin_password: "{{ ad.domain_admin_password }}"
+      #domain_ou_path: "OU=Windows,OU=Servers,DC=ansible,DC=vagrant"
+      state: domain
+      reboot: true

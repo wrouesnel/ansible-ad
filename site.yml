@@ -1,5 +1,9 @@
-
+- import_playbook: collect-facts.yml
 - import_playbook: windows-common.yml
+- import_playbook: windows-client.yml
 - import_playbook: windows-ad-initialize.yml
+- import_playbook: windows-ad-features.yml
+- import_playbook: windows-ad-groups.yml
+- import_playbook: windows-roaming-user-profiles.yml
 - import_playbook: windows-ad-users.yml
 - import_playbook: windows-ad-policy.yml

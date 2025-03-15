@@ -17,6 +17,8 @@ ad:
   #   retry_interval_sec: 1
   #   retry_count: 300
 
+ad_dc: "{{ [ 'DC=' ] | product(ad.domain_name|split('.')) | map('join') | join(',') }}"
+
 ad_groups:
   Desktop Admins:
     description: Desktop Machine Administrators
@@ -24,6 +26,12 @@ ad_groups:
   # https://learn.microsoft.com/en-us/windows-server/storage/folder-redirection/deploy-roaming-user-profiles
   Roaming Users:
     description: Group for Roaming Security Profiles
+
+ad_dirs:  
+  profiles: "C:\\Share\\UserProfiles$"
+  homes: "C:\\Share\\Users$"
+  homeDrive: "H:"
+  homeServer: "\\\\server-1.default.libvirt"
 
 ad_users:
   "john.everyman":
@@ -39,9 +47,7 @@ ad_users:
       email: john.everyman@sometypeofcompany.com
       attributes:
         telephoneNumber: +61 555 111 444
-        profilePath: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
-        homeDirectory: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
-        homeDrive: "Z:"
+
     password: 389PassGoHome@
     groups:
     - Domain Users
@@ -52,7 +58,7 @@ ad_users:
     details:
       firstname: Jane
       surname: DesktopAdmin
-      display_name: John DesktopAdmin
+      display_name: Jane DesktopAdmin
       company: Some Type of Company
       street: 1 Not A Real Address
       city: Sydney
@@ -61,10 +67,7 @@ ad_users:
       email: jane.desktopadmin@sometypeofcompany.com
       attributes:
         telephoneNumber: +61 555 111 443
-        profilePath: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
-        homeDirectory: "\\\\server-1.default.libvirt\\UserProfiles$\\%username%"
-        homeDrive: "Z:"
-    password: 1JanesPassword@
+    password: 123GigaStacy@
     groups:
     - Domain Users
     - Remote Desktop Users

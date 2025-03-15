@@ -1,0 +1,31 @@
+- hosts: all,!windows
+  become: true
+  tasks:
+  - local_action:
+      module: file
+      path: "{{playbook_dir}}/facts"
+      state: directory
+    become: false
+    
+  - local_action:
+      module: copy
+      content: |
+        {{ hostvars[inventory_hostname] | to_nice_yaml }}
+      dest: "{{playbook_dir}}/facts/facts.{{inventory_hostname}}.yml"
+    become: false
+
+- hosts: windows
+  #become: true
+  tasks:
+  - local_action:
+      module: file
+      path: "{{playbook_dir}}/facts"
+      state: directory
+    become: false
+    
+  - local_action:
+      module: copy
+      content: |
+        {{ hostvars[inventory_hostname] | to_nice_yaml }}
+      dest: "{{playbook_dir}}/facts/facts.{{inventory_hostname}}.yml"
+    become: false

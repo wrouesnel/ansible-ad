@@ -1,16 +1,6 @@
 - hosts: ad-servers
   #become: yes
   tasks:
-  - name: Configure domain groups
-    microsoft.ad.group:
-      identity: "{{item.key}}"
-      scope: global
-      state: present
-      description: "{{item.value.description}}"
-    loop: "{{ad_groups|dict2items}}"
-
-  #- name: Configure domain security policy
-
   - name: Ensure users exist
     microsoft.ad.user:
       identity: "{{item.key}}"
@@ -29,5 +19,27 @@
       country: "{{item.value.details.country}}"
       email: "{{item.value.details.email}}"
       attributes: 
-        set: "{{item.value.details.attributes}}"
+        set: |-
+          {%- set attrs = item.value.details.attributes -%}
+          {%- do attrs.update({"profilePath": [ad_dirs.homeServer, ad_dirs.profiles | win_basename, item.key + "@" + ad.domain_name] | join("\\") }) -%}
+          {%- do attrs.update({"homeDirectory": [ad_dirs.homeServer, ad_dirs.homes | win_basename, item.key + "@" + ad.domain_name] | join("\\") }) -%}
+          {%- do attrs.update({"homeDrive": ad_dirs.homeDrive }) -%}
+          {{ attrs }}
+    loop: "{{ad_users|dict2items}}"
+
+  - name: Ensure user home folders exist
+    ansible.windows.win_file:
+      path: "{{ ad_dirs.homes }}\\{{ item.key }}@{{ ad.domain_name }}"
+      state: directory
+    loop: "{{ad_users|dict2items}}"
+
+  - name: Ensure correct permissions on user home folders
+    ansible.windows.win_acl:
+      path: "{{ ad_dirs.homes }}\\{{ item.key }}@{{ ad.domain_name }}"
+      user: "{{ item.key }}@{{ ad.domain_name }}"
+      type: allow
+      state: present
+      rights: FullControl
+      # propagation: NoPropagateInherit
+      # inherit: None
     loop: "{{ad_users|dict2items}}"

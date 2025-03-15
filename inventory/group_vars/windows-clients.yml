@@ -1,0 +1,7 @@
+ansible_port: 5986
+ansible_connection: winrm
+ansible_winrm_server_cert_validation: ignore
+# ansible_winrm_ca_trust_path: /path/to/caroot.pem
+# ansible_winrm_transport: certficate
+# ansible_winrm_cert_pem: /path/to/winlogin.pem
+# ansible_winrm_cert_key_pem: /path/to/winlogin.key

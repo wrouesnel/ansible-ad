@@ -1,27 +1,113 @@
 - hosts: ad-servers
   #become: yes
+  vars:
+    share_dirs:
+    - "{{ ad_dirs.profiles }}"
+    - "{{ ad_dirs.homes }}"
   tasks:
   - ansible.windows.win_file:
       path: "C:\\Share"
       state: directory
 
   - ansible.windows.win_file:
-      path: "C:\\Share\\User Profiles$"
+      path: "{{ item }}"
       state: directory
+    loop: "{{ share_dirs }}"
+
+  - name: Disable and copy inherited ACE's
+    ansible.windows.win_acl_inheritance:
+      path: "{{ item }}"
+      state: absent
+      reorganize: true
+    loop: "{{ share_dirs }}"
 
   - ansible.windows.win_acl:
-      path: "C:\\Share\\User Profiles$"
+      path: "{{ item }}"
       user: Roaming Users
       type: allow
       state: present
-      rights: ListDirectory,ReadData,CreateFiles,WriteData,AppendData
+      rights: ListDirectory,ReadData,CreateDirectories,AppendData
+      propagation: NoPropagateInherit
+      inherit: None
+    loop:
+    - "{{ ad_dirs.profiles }}"
+
+  - ansible.windows.win_acl:
+      path: "{{ item }}"
+      user: Roaming Users
+      type: allow
+      state: present
+      rights: ListDirectory,ReadData,CreateDirectories,AppendData,ReadAttributes,ReadExtendedAttributes,ReadPermissions,Traverse
+      propagation: NoPropagateInherit
+      inherit: None
+    loop:
+    - "{{ ad_dirs.homes }}"
+
+  - ansible.windows.win_acl:
+      path: "{{ item }}"
+      user: Users
+      type: allow
+      state: absent
+      rights: Traverse,ListDirectory,ReadAttributes,ReadExtendedAttributes,ReadPermissions
+    loop:
+    - "{{ ad_dirs.homes }}"
+
+  # For whatever reason this doesn't work - TODO: replace with powershell
+  # - ansible.windows.win_acl:
+  #     path: "{{ item }}"
+  #     user: Users
+  #     type: allow
+  #     state: absent
+  #     rights: CreateFiles,AppendData
+  #     inherit: ContainerInherit
+  #     propagation: None
+  #   loop:
+  #   - "{{ ad_dirs.homes }}"
 
   - ansible.windows.win_share:
-      path: "C:\\Share\\User Profiles$"
+      path: "{{ item }}"
       state: present
-      name: "UserProfiles$"
+      name: "{{ item | win_basename }}"
       encrypt: true
       list: true
       full: Everyone
       change: Everyone
       read: Everyone
+    loop: "{{ share_dirs }}"
+
+  - name: Configure NFS shares
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        $intendedAuthentication = "Krb5","Krb5i"
+        function makeNfsShare() {
+          New-NfsShare `
+            -Name "home" `
+            -Path "{{ ad_dirs.homes }}" `
+            -Authentication $intendedAuthentication `
+            -Permission readwrite `
+            -EnableUnmappedAccess $false `
+            -EnableAnonymousAccess $false
+        }
+
+        try {
+          $share = Get-NfsShare -Name "home"
+          
+          $needsUpdate = $false
+          if ($share.AnonymousAccess) {
+            $needsUpdate = $true
+          }
+          if ($share.UnmappedUserAccess) {
+            $needsUpdate = $true
+          }
+          if (-not (-not (Compare-Object $share.Authentication $intendedAuthentication))) { 
+            $needsUpdate = $true
+          }
+
+          if ($needsUpdate) {
+            Remove-NfsShare -Confirm:$false -Name "home"
+            makeNfsShare
+          }
+        } catch {
+          makeNfsShare
+        }
