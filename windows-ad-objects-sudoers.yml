@@ -17,12 +17,13 @@
 
   - name: NOPASSWD sudo for desktop admins
     microsoft.ad.object:
-      name: "%desktop admins"
+      name: desktop_admins_sudo
       path: OU=sudoers,{{ ad_dc }}
       description: Desktop Administrators
       type: sudoRole
       attributes:
         set:
+          sudoUser: "%desktop admins@default.libvirt"
           sudoHost: ALL
           sudoCommand: ALL
           sudoOption:

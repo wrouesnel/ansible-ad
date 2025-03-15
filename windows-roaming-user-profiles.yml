@@ -75,6 +75,8 @@
       read: Everyone
     loop: "{{ share_dirs }}"
 
+  # TODO: set-spn to add the nfs SPN to the PC
+
   - name: Configure NFS shares
     ansible.windows.win_powershell:
       error_action: stop

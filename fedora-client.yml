@@ -3,6 +3,10 @@
   tasks:
   # package
   # krb5-workstation
+  # autofs
+  # gdm
+  # remove lightdm
+  # sssd-tools
 
   # check for realm membership
 
@@ -18,11 +22,13 @@
   - command: authselect enable-feature
     loop:
     - with-libvirt
-    - with-mkhomedir
+    # Home directory mounting will fix this
+    #- with-mkhomedir
     - with-pam-gnome-keyring
     - with-smartcard
     - with-subid
     - with-tlog
+    - with-sudo
 
   # sssd.conf
   # [sssd]

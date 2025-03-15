@@ -37,3 +37,6 @@ Use `windows-pull.yml` to yank down things which are hard to edit - namely GPOs.
 ./kvmboot --efi --windows lci.Win2k22-Base.root.qcow2 server-1
 ```
 
+# TODO:
+
+What does AD need to support subid/subgid handling?

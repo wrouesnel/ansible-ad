@@ -1,0 +1,51 @@
+---
+# Set basic policy objects for Linux
+- hosts: ad-servers
+  run_once: true
+  tasks:
+  - name: master map
+    microsoft.ad.object:
+      name: auto.master
+      path: OU=autofs,{{ ad_dc }}
+      description: autofs root entry
+      type: nisMap
+      attributes:
+        set:
+          nisMapName: auto.master
+      state: present
+
+  - name: autofs master home submap
+    microsoft.ad.object:
+      name: /home
+      path: CN=auto.master,OU=autofs,{{ ad_dc }}
+      description: autofs home mapping
+      type: nisObject
+      attributes:
+        set:
+          nisMapName: /home
+          nisMapEntry: auto.home
+      state: present
+
+  - name: /home map
+    microsoft.ad.object:
+      name: auto.home
+      path: OU=autofs,{{ ad_dc }}
+      description: autofs /home
+      type: nisMap
+      attributes:
+        set:
+          nisMapName: auto.home
+      state: present
+
+  - name: autofs master home submap
+    microsoft.ad.object:
+      name: '*'
+      path: CN=auto.home,OU=autofs,{{ ad_dc }}
+      description: User Home Directory Wildcard Mapping
+      type: nisObject
+      attributes:
+        set:
+          nisMapName: "*"
+          #nisMapEntry: -fstype=nfs4,vers=4.1,sec=krb5i,rw {{groups["ad-servers"] | first}}:/home/&
+          nisMapEntry: "-fstype=cifs,sec=krb5i,cruid=$UID,vers=3.0,multiuser ://server-1.default.libvirt/Users\\$/&"
+      state: present
