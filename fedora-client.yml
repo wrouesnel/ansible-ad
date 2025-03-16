@@ -1,41 +1,131 @@
-- hosts: fedora-clients
+- hosts: fedora_clients
   become: yes
   tasks:
-  # package
-  # krb5-workstation
-  # autofs
-  # gdm
-  # remove lightdm
-  # sssd-tools
+  - name: Check if the python-libdnf5 module is available
+    package:
+      name:
+      - python-libdnf5
+      state: present
+    ignore_errors: true
+    register: need_manual_package
+  
+  - name: Install python-libdnf5
+    command: dnf install -y python-libdnf5
+    when: need_manual_package.failed|default(false) == true
+
+  - name: Ensure selinux works with CIFS dirs
+    command: setsebool -P use_samba_home_dirs 1
+
+  - name: Install pre-requisite packages
+    package:
+      name:
+      - krb5-workstation
+      - gdm
+      - sssd-tools
+      - tlog
+
+  - name: Remove lightdm
+    package:
+      name:
+      - lightdm
+      state: absent
 
   # check for realm membership
 
   # join realm
 
-  # authselect and enable additional features:
-  # with-libvirt
-  # with-mkhomedir
-  # with-pam-gnome-keyring
-  # with-smartcard
-  # with-subid
-  # with-tlog
-  - command: authselect enable-feature
-    loop:
-    - with-libvirt
-    # Home directory mounting will fix this
-    #- with-mkhomedir
-    - with-pam-gnome-keyring
-    - with-smartcard
-    - with-subid
-    - with-tlog
-    - with-sudo
+# THIS: THIS IS HOW YOU GET HOME DIRECTORIES TO WORK. USE PAM_MOUNT.
+# <volume sgrp="domain users@default.libvirt"
+#     fstype="cifs"
+#     server="server-1.default.libvirt"
+#     path="Users$/%(USER)"
+#     mountpoint="/home/%(USER)"
+#     options="sec=krb5i,cruid=%(USERUID),vers=3.0"
+# />
 
-  # sssd.conf
-  # [sssd]
-  # default_domain_suffix = default.libvirt
-  # services = nss, pam, ssh, sudo, autofs
-  # default
-  # [pam]
-  # pam_cert_auth =	True
+  - name: Check if custom profile exists
+    command: authselect show custom/sssd-ext
+    failed_when: false
+    register: authselect_result
+
+  - name: Setup an extended sssd authselect profile
+    command: authselect create-profile -b sssd --symlink-nsswitch --symlink-dconf sssd-ext
+    when: authselect_result.rc != 0
+
+  - name: Edit the profile
+    copy:
+      src: files/authselect/sssd-ext/{{item}}
+      dest: /etc/authselect/custom/sssd-ext/{{item}}
+      mode: "0644"
+      owner: root
+      group: root
+    loop:
+    - fingerprint-auth 
+    - password-auth
+    - postlogin
+    - README
+    - REQUIREMENTS
+    - smartcard-auth
+    - system-auth
+
+  - name: Ensure pam-mount is installed
+    package:
+      name: pam_mount
+      state: present
+
+  - name: Configure pam_mount
+    blockinfile:
+      path: /etc/security/pam_mount.conf.xml
+      insertafter: "\\s*<!--\\s*Volume definitions.*"
+      marker: <!-- {mark} ANSIBLE MANAGED BLOCK -->
+      block: |
+        <volume sgrp="domain users@{{ ad.domain_name }}"
+            fstype="cifs"
+            server="server-1.{{ad.domain_name}}"
+            path="Users$/%(USER)"
+            mountpoint="/home/%(USER)"
+            options="sec=krb5i,cruid=%(USERUID),vers=3.0"
+        />
+
+  - name: Enable the new profile
+    command: >-
+      authselect select custom/sssd-ext 
+        with-libvirt
+        with-pam-mount
+        with-pam-gnome-keyring
+        with-smartcard
+        with-subid
+        with-tlog
+        with-sudo
+  
+  - name: Ensure profile is active
+    command: authselect apply-changes
+
+  - name: Configure sssd
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      regexp: ^services = .*
+      line: services = nss, pam, ssh, sudo
+      insertafter: "^\\[sssd\\]"
+
+  - name: Configure sssd
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      regexp: ^default_domain_suffix = .*
+      line: default_domain_suffix = {{ ad.domain_name }}
+      insertafter: "^\\[sssd\\]"
+
+  - name: Configure sssd
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      line: "[pam]"
+
+  - name: Configure sssd
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      insertafter: "\\[pam\\]"
+      line: pam_cert_auth = True
+        
+
   # [session_recording]
   # TODO

@@ -1,6 +1,6 @@
 ---
 # Add the sudo schema
-- hosts: ad-servers
+- hosts: ad_servers
   run_once: true
   tasks:
   - name: Copy sudo schema to guest
@@ -20,7 +20,7 @@
     with_items:
     - sudo
 
-- hosts: ad-servers
+- hosts: ad_servers
   run_once: true
   tasks:
   - name: Add the sudo OU

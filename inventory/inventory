@@ -1,20 +1,20 @@
 [windows]
 
 [windows:children]
-ad-servers
-windows-clients
+ad_servers
+windows_clients
 
 [linux]
 
-[linux-children]
-fedora-clients
+[linux:children]
+fedora_clients
 
-[ad-servers]
+[ad_servers]
 server-1.default.libvirt ansible_user=will ansible_password=reeyeechiafaboh9Urai first_node=true
 ; #server-2.default.libvirt ansible_user=will ansible_password=Yeudeev3xie4seisahk5
 
-[windows-clients]
+[windows_clients]
 w10client.default.libvirt ansible_user=will ansible_password=rou3Ahyohhaedeiz0oka
 
-[fedora-clients]
-fed-client.default.libvirt ansible_user=will ansible_password=iosaPiefeeko1phathaechui
+[fedora_clients]
+fed-client.default.libvirt ansible_user=root

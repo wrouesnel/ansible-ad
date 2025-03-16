@@ -1,6 +1,6 @@
 ---
 # Deploy GPO to the domain 
-- hosts: ad-servers
+- hosts: ad_servers
   #become: yes
   tasks:
   - name: Get temporary

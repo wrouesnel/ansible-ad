@@ -7,3 +7,4 @@
 - import_playbook: windows-roaming-user-profiles.yml
 - import_playbook: windows-ad-users.yml
 - import_playbook: windows-ad-policy.yml
+- import_playbook: windows-ad-objects-sudoers.yml

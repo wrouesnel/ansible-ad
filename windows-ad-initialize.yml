@@ -2,7 +2,7 @@
 - import_playbook: windows-bitlocker.yml
   when: enable_bitlocker|default(False)
 
-- hosts: ad-servers
+- hosts: ad_servers
   #become: yes
   tasks:
   - name: Set local administrator account to domain admin account password

@@ -1,6 +1,6 @@
 ---
 # Set basic policy objects for Linux
-- hosts: ad-servers
+- hosts: ad_servers
   run_once: true
   tasks:
   - name: sudoer defaults

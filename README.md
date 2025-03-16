@@ -40,3 +40,5 @@ Use `windows-pull.yml` to yank down things which are hard to edit - namely GPOs.
 # TODO:
 
 What does AD need to support subid/subgid handling?
+
+AD policy restore from zip doesn't set scope/delegation on GPOs properly (so they won't apply as expected.)

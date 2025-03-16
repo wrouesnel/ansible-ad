@@ -1,4 +1,4 @@
-- hosts: ad-servers
+- hosts: ad_servers
   #become: yes
   tasks:
   - name: Ensure users exist

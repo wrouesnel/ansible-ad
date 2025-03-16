@@ -1,6 +1,10 @@
 ---
-# Set basic policy objects for Linux
-- hosts: ad-servers
+# This is an instructional playbook on how to setup autofs. It is a valid way to *do* autofs.
+# It absolutely does not work with modern session manager logins, which will trigger a lot of failed
+# logins under the wrong user which then put autofs into 60 second timeout before it re-allows login.
+# This breaks the primary use-case: mounting home directories. See fedora-client for the pam_mount
+# configuration which should be used instead.
+- hosts: ad_servers
   run_once: true
   tasks:
   - name: master map
@@ -46,6 +50,18 @@
       attributes:
         set:
           nisMapName: "*"
-          #nisMapEntry: -fstype=nfs4,vers=4.1,sec=krb5i,rw {{groups["ad-servers"] | first}}:/home/&
-          nisMapEntry: "-fstype=cifs,sec=krb5i,cruid=$UID,vers=3.0,multiuser ://server-1.default.libvirt/Users\\$/&"
+          # FAIL: nisMapEntry: -fstype=nfs4,vers=4.1,sec=krb5i,rw {{groups["ad_servers"] | first}}:/home/&
+          # SUCCCES: nisMapEntry: "-fstype=cifs,sec=krb5i,cruid=$UID,vers=3.0,multiuser ://server-1.default.libvirt/Users\\$/&"
+          # FAILED? nisMapEntry: "-fstype=cifs,sec=krb5i,user=$USER,cruid=$UID,uid=$UID,gid=$GID,vers=3.0,multiuser,rw ://server-1.default.libvirt/Users\\$/&"
+          nisMapEntry: "-fstype=cifs,sec=krb5i,cruid=$UID,vers=3.0 ://server-1.default.libvirt/Users\\$/&"
       state: present
+
+# <volume sgrp="domain users@default.libvirt"
+#     fstype="cifs"
+#     server="server-1.default.libvirt"
+#     path="Users$/%(USER)"
+#     mountpoint="/home/%(USER)"
+#     options="sec=krb5i,cruid=%(USERUID),vers=3.0"
+# />
+
+
