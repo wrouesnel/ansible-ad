@@ -42,3 +42,8 @@ Use `windows-pull.yml` to yank down things which are hard to edit - namely GPOs.
 What does AD need to support subid/subgid handling?
 
 AD policy restore from zip doesn't set scope/delegation on GPOs properly (so they won't apply as expected.)
+
+# Fedora Notes
+
+You need this PR https://codeberg.org/jengelh/pam_mount/pulls/5 applied to pam_mount to get sensible bind mount
+behavior, but it works beautifully for folder redirections.
