@@ -16,6 +16,8 @@
   - name: Ensure selinux works with CIFS dirs
     command: setsebool -P use_samba_home_dirs 1
 
+  # There's an alert about polyinstantiation which is probably just a bug due to pam_mount overmounting .cache
+
   - name: Install pre-requisite packages
     package:
       name:
@@ -29,6 +31,13 @@
       name:
       - lightdm
       state: absent
+
+  - name: Disable systemd-home
+    service:
+      name:
+      - systemd-homed
+      state: stopped
+      enabled: false
 
   # check for realm membership
 
@@ -84,8 +93,14 @@
             server="server-1.{{ad.domain_name}}"
             path="Users$/%(USER)"
             mountpoint="/home/%(USER)"
-            options="sec=krb5i,cruid=%(USERUID),vers=3.0"
+            options="sec=krb5i,cruid=%(USERUID),vers=3.0,nobrl,mfsymlinks"
         />
+
+  # https://bugs.launchpad.net/ubuntu/+source/cifs-utils/+bug/1764778
+  - name: Configure dconf to work over CIFS
+    lineinfile:
+      path: /etc/dconf/profile/user
+      line: service-db:keyfile/user
 
   - name: Enable the new profile
     command: >-
@@ -125,7 +140,14 @@
       path: /etc/sssd/sssd.conf
       insertafter: "\\[pam\\]"
       line: pam_cert_auth = True
-        
+
+  # TODO: create-local-homedir.sh deployment + SELinux fixups.
+  # TODO: can create-local-homedir fit in a profile rather then in sshd/login/gdm-password?
+  # ln /usr/local/sbin/create-local-homedir{,-gdm}.sh
+  # semanage fcontext -a -t home_root_t /usr/local/home
+  # restorecon -v /usr/local/home
+  # semanage fcontext -a -t xdm_unconfined_exec_t /usr/local/sbin/create-local-homedir-gdm.sh
+  # restorecon -v /usr/local/sbin/create-local-homedir-gdm.sh
 
   # [session_recording]
   # TODO
