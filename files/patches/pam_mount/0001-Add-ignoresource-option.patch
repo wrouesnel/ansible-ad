@@ -1,0 +1,107 @@
+From e6802131d1a1a44ad58979ebae525af2cd6e2337 Mon Sep 17 00:00:00 2001
+From: Jochen Sprickerhof <git@jochen.sprickerhof.de>
+Date: Thu, 7 Jul 2022 09:51:37 +0200
+Subject: [PATCH] Add ignoresource option
+
+This is useful in case the source path specified in path is different to
+the path stored in the kernel. See:
+
+https://bugs.launchpad.net/ubuntu/+source/libpam-mount/+bug/1908638
+---
+ config/pam_mount.conf.xml.dtd | 1 +
+ doc/pam_mount.conf.5.in       | 6 ++++++
+ src/mount.c                   | 9 ++++++---
+ src/pam_mount.h               | 1 +
+ src/rdconf1.c                 | 3 +++
+ 5 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/config/pam_mount.conf.xml.dtd b/config/pam_mount.conf.xml.dtd
+index cbd6c9c..5dd6f79 100644
+--- a/config/pam_mount.conf.xml.dtd
++++ b/config/pam_mount.conf.xml.dtd
+@@ -83,6 +83,7 @@
+ 	fskeycipher CDATA #IMPLIED
+ 	fskeyhash CDATA #IMPLIED
+ 	fskeypath CDATA #IMPLIED
++	ignoresource CDATA #IMPLIED
+ >
+ <!ELEMENT msg-authpw (#PCDATA)>
+ <!ELEMENT msg-sessionpw (#PCDATA)>
+diff --git a/doc/pam_mount.conf.5.in b/doc/pam_mount.conf.5.in
+index 4c69f38..ff8585b 100644
+--- a/doc/pam_mount.conf.5.in
++++ b/doc/pam_mount.conf.5.in
+@@ -132,6 +132,12 @@ OpenSSL hash name for the fskey.
+ .TP
+ \fBfskeypath="\fP\fIpath\fP\fB"\fP
+ Path to the filesystem key.
++\fBignoresource="1"\fP
++Ignores the source path when checking if the volume was already mounted. This
++is useful in case the source path specified in
++\fBpath\fP is different to the path stored in the kernel. This could be the case when using
++\fBby-label\fP devices files or with NFS servers.
++.TP
+ .SH Variables
+ Within attributes and commands (see later section), specific placeholders or
+ variables, identified by \fB%(\fP\fIname\fP\fB)\fP may be used. These are
+diff --git a/src/mount.c b/src/mount.c
+index 5e05208..c4fded2 100644
+--- a/src/mount.c
++++ b/src/mount.c
+@@ -137,6 +137,9 @@ static bool pmt_utabent_matches(const struct vol *vpt, struct libmnt_fs *fs)
+ 		}
+ 	}
+ 
++	if (vpt->ignore_source)
++		result = true;
++
+ 	if (target != NULL)
+ 		result &= strcmp(vpt->mountpoint, target) == 0;
+ 
+@@ -262,14 +265,14 @@ static void log_pm_input(const struct config *const config,
+ 		"Mount info: %s, user=%s <volume fstype=\"%s\" "
+ 		"server=\"%s\" path=\"%s\" "
+ 		"mountpoint=\"%s\" cipher=\"%s\" fskeypath=\"%s\" "
+-		"fskeycipher=\"%s\" fskeyhash=\"%s\" header=\"%s\" options=\"%s\" /> "
+-		"fstab=%u ssh=%u\n",
++		"fskeycipher=\"%s\" fskeyhash=\"%s\" header=\"%s\" options=\"%s\" "
++		"fstab=%u ssh=%u ignoresource=%u /> \n",
+ 		vpt->globalconf ? "globalconf" : "luserconf",
+ 		znul(vpt->user), znul(vpt->fstype),
+ 		znul(vpt->server), znul(vpt->volume),
+ 		vpt->mountpoint, znul(vpt->cipher), znul(vpt->fs_key_path),
+ 		znul(vpt->fs_key_cipher), znul(vpt->fs_key_hash), znul(vpt->header), options,
+-		vpt->use_fstab, vpt->uses_ssh
++		vpt->use_fstab, vpt->uses_ssh, vpt->ignore_source
+ 	);
+ 	HXmc_free(options);
+ }
+diff --git a/src/pam_mount.h b/src/pam_mount.h
+index ce68557..61395f7 100644
+--- a/src/pam_mount.h
++++ b/src/pam_mount.h
+@@ -88,6 +88,7 @@ struct vol {
+ 	bool noroot;
+ 	/* try mount even when password is empty */
+ 	bool empty_pass;
++	bool ignore_source;
+ };
+ 
+ /**
+diff --git a/src/rdconf1.c b/src/rdconf1.c
+index 91397e9..ecfe731 100644
+--- a/src/rdconf1.c
++++ b/src/rdconf1.c
+@@ -1445,6 +1445,9 @@ static const char *rc_volume(xmlNode *node, struct config *config,
+ 	if (fstype_nodev(vpt->fstype) == 1 && vpt->volume == NULL)
+ 		vpt->volume = xstrdup("none");
+ 
++	if ((tmp = xml_getprop(node, "ignoresource")) != NULL)
++		vpt->ignore_source = parse_bool_f(tmp);
++
+ 	return NULL;
+ 
+  out:
+-- 
+2.43.0
+
