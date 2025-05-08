@@ -8,3 +8,4 @@
 - import_playbook: windows-ad-users.yml
 - import_playbook: windows-ad-policy.yml
 - import_playbook: windows-ad-objects-sudoers.yml
+- import_playbook: windows-adcs.yml

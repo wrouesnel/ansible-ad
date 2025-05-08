@@ -28,6 +28,9 @@ ad_groups:
     description: Group for Roaming Security Profiles
 
 ad_dirs:  
+  serviceAccountHomes: "C:\\Share\\ManagedServiceAccounts$"
+  serviceAccountProfiles: "C:\\Share\\ManagedServiceAccountsProfiles$"
+
   profiles: "C:\\Share\\UserProfiles$"
   homes: "C:\\Share\\Users$"
   homeDrive: "H:"
@@ -67,12 +70,18 @@ ad_users:
       email: jane.desktopadmin@sometypeofcompany.com
       attributes:
         telephoneNumber: +61 555 111 443
-    password: 123GigaStacy@
+    password: 981GigaChad!
     groups:
     - Domain Users
     - Remote Desktop Users
     - Desktop Admins
     - Roaming Users
+
+ad_service_accounts:
+  "svc.workstation-realm-join":
+    details:
+      display_name: "Workstation Realm Join"
+
 
 ad_gpo:
   "Enable Remote Desktop":
