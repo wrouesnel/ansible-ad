@@ -1,0 +1,28 @@
+---
+# Configure the domain joiners group to have the correct ACLs
+- hosts: ad_servers
+  #become: yes
+  tasks:
+  # These were empircally derived by setting it up in the custom manager.
+  # They will enable Domain Joiners to create, but not delete, computer accounts.
+  - name: Enable Domain Joiners to Join Computers to the Domain
+    win_acl:
+      path: "AD:CN=Computers,{{ad_dc}}"
+      user: "Domain Joiners@{{ad.domain_name}}"
+      rights: GenericAll
+      inherit: ContainerInherit
+      inheritance_type: Descendents
+      object_type: computer
+      type: allow
+      state: present
+
+  - name: Enable Domain Joiners to Join Computers to the Domain
+    win_acl:
+      path: "AD:CN=Computers,{{ad_dc}}"
+      user: "Domain Joiners@{{ad.domain_name}}"
+      rights: CreateChild
+      inherit: ContainerInherit
+      inheritance_type: All
+      child_object_type: computer
+      type: allow
+      state: present
