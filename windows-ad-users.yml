@@ -19,23 +19,30 @@
       country: "{{item.value.details.country}}"
       email: "{{item.value.details.email}}"
       attributes: 
+      # This is the set if you need to match up @ domains
+        # set: |-
+        #   {%- set attrs = item.value.details.attributes -%}
+        #   {%- do attrs.update({"profilePath": [ad_dirs.homeServer, ad_dirs.profiles | win_basename, item.key + "@" + ad.domain_name] | join("\\") }) -%}
+        #   {%- do attrs.update({"homeDirectory": [ad_dirs.homeServer, ad_dirs.homes | win_basename, item.key + "@" + ad.domain_name] | join("\\") }) -%}
+        #   {%- do attrs.update({"homeDrive": ad_dirs.homeDrive }) -%}
+        #   {{ attrs }}
         set: |-
           {%- set attrs = item.value.details.attributes -%}
-          {%- do attrs.update({"profilePath": [ad_dirs.homeServer, ad_dirs.profiles | win_basename, item.key + "@" + ad.domain_name] | join("\\") }) -%}
-          {%- do attrs.update({"homeDirectory": [ad_dirs.homeServer, ad_dirs.homes | win_basename, item.key + "@" + ad.domain_name] | join("\\") }) -%}
+          {%- do attrs.update({"profilePath": [ad_dirs.homeServer, ad_dirs.profiles | win_basename, item.key] | join("\\") }) -%}
+          {%- do attrs.update({"homeDirectory": [ad_dirs.homeServer, ad_dirs.homes | win_basename, item.key] | join("\\") }) -%}
           {%- do attrs.update({"homeDrive": ad_dirs.homeDrive }) -%}
           {{ attrs }}
     loop: "{{ad_users|dict2items}}"
 
   - name: Ensure user home folders exist
     ansible.windows.win_file:
-      path: "{{ ad_dirs.homes }}\\{{ item.key }}@{{ ad.domain_name }}"
+      path: "{{ ad_dirs.homes }}\\{{ item.key }}"
       state: directory
     loop: "{{ad_users|dict2items}}"
 
   - name: Ensure correct permissions on user home folders
     ansible.windows.win_acl:
-      path: "{{ ad_dirs.homes }}\\{{ item.key }}@{{ ad.domain_name }}"
+      path: "{{ ad_dirs.homes }}\\{{ item.key }}"
       user: "{{ item.key }}@{{ ad.domain_name }}"
       type: allow
       state: present

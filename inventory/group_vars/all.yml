@@ -27,9 +27,12 @@ ad_groups:
   Roaming Users:
     description: Group for Roaming Security Profiles
 
+  Domain Joiners:
+    description: Group for users which can execute domain joins on hosts
+
 ad_dirs:  
-  serviceAccountHomes: "C:\\Share\\ManagedServiceAccounts$"
-  serviceAccountProfiles: "C:\\Share\\ManagedServiceAccountsProfiles$"
+  # serviceAccountHomes: "C:\\Share\\ManagedServiceAccounts$"
+  # serviceAccountProfiles: "C:\\Share\\ManagedServiceAccountsProfiles$"
 
   profiles: "C:\\Share\\UserProfiles$"
   homes: "C:\\Share\\Users$"
@@ -76,12 +79,12 @@ ad_users:
     - Remote Desktop Users
     - Desktop Admins
     - Roaming Users
+    - Domain Joiners
 
-ad_service_accounts:
-  "svc.workstation-realm-join":
-    details:
-      display_name: "Workstation Realm Join"
-
+# ad_service_accounts:
+#   "svc.workstation-realm-join":
+#     details:
+#       display_name: "Workstation Realm Join"
 
 ad_gpo:
   "Enable Remote Desktop":

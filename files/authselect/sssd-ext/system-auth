@@ -1,5 +1,6 @@
 {imply "with-smartcard" if "with-smartcard-required"}
 auth        required                                     pam_env.so
+auth        required                                     pam_group.so
 auth        required                                     pam_faildelay.so delay=2000000
 auth        required                                     pam_faillock.so preauth silent                         {include if "with-faillock"}
 auth        [success=1 default=ignore]                   pam_succeed_if.so service notin login:gdm:xdm:kdm:kde:xscreensaver:gnome-screensaver:kscreensaver quiet use_uid {include if "with-smartcard-required"}

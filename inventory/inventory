@@ -10,7 +10,7 @@ windows_clients
 fedora_clients
 
 [ad_servers]
-server-1.default.libvirt ansible_user=will ansible_password=reeyeechiafaboh9Urai first_node=true
+server-1.default.libvirt ansible_user=will ansible_password=ir2KaiL7miquofaash2u first_node=true
 ; #server-2.default.libvirt ansible_user=will ansible_password=Yeudeev3xie4seisahk5
 
 [windows_clients]

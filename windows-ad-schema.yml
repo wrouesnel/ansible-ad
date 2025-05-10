@@ -30,9 +30,9 @@
       state: present
       protect_from_deletion: true
 
-  - name: Add the autofs OU
-    microsoft.ad.ou:
-      name: autofs
-      path: "{{ad_dc}}"
-      state: present
-      protect_from_deletion: true
+  # - name: Add the autofs OU
+  #   microsoft.ad.ou:
+  #     name: autofs
+  #     path: "{{ad_dc}}"
+  #     state: present
+  #     protect_from_deletion: true

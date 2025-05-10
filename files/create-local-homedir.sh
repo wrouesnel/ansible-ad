@@ -8,9 +8,9 @@ PAM_UID=$(id -u "${PAM_USER}")
 PAM_GID=$(id -g "${PAM_USER}")
 
 if (( PAM_UID >= 1000 )); then
-  install -o "${PAM_UID}" -g "${PAM_GID}" -m 0700 -d "/usr/local/home/${PAM_USER}"
+  install -o "${PAM_UID}" -g "${PAM_GID}" -m 0700 -d "/var/lib/home/${PAM_USER}"
   # Cache should be local
-  install -o "${PAM_UID}" -g "${PAM_GID}" -m 0700 -d "/usr/local/home/${PAM_USER}/.cache"
+  install -o "${PAM_UID}" -g "${PAM_GID}" -m 0700 -d "/var/lib/home/${PAM_USER}/.cache"
 
   # Application Specific Overrides
   # TODO: consider some of these - they reduce overhead, but are they convenient? Python in particular doesn't seem
@@ -21,7 +21,7 @@ if (( PAM_UID >= 1000 )); then
   # export GOPATH="/usr/local/home/${USER}/go"              # golang
 
   # Podman
-  install -o "${PAM_UID}" -g "${PAM_GID}" -m 0700 -d "/usr/local/home/${PAM_USER}/.local/share/containers"
+  install -o "${PAM_UID}" -g "${PAM_GID}" -m 0700 -d "/var/lib/home/${PAM_USER}/.local/share/containers"
 
   # Flatpak workaround (https://www.sacredheartsc.com/blog/desktop-linux-with-nfs-homedirs/)
   # Note: bind-mounting $HOME/.var to /opt/flatpak/${PAM_USER} will be necessary.

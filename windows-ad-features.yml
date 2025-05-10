@@ -3,13 +3,13 @@
 - hosts: ad_servers
   #become: yes
   tasks:
-  - name: Install features
-    ansible.windows.win_feature:
-      name: FS-NFS-Service
-      include_sub_features: true
-      include_management_tools: true
-      state: present
-    register: win_feature
+  # - name: Install features
+  #   ansible.windows.win_feature:
+  #     name: FS-NFS-Service
+  #     include_sub_features: true
+  #     include_management_tools: true
+  #     state: present
+  #   register: win_feature
 
   - name: Reboot if installing Web-Server feature requires it
     ansible.windows.win_reboot:
