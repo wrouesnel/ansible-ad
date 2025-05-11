@@ -20,7 +20,7 @@ auth        [default=1 ignore=ignore success=ok]         pam_usertype.so isregul
 auth        sufficient                                   pam_sss.so forward_pass
 auth        required                                     pam_faillock.so authfail                               {include if "with-faillock"}
 auth        optional                                     pam_mount.so disable_interactive                       {include if "with-pam-mount"}
-session     optional                                     pam_exec.so /usr/local/sbin/create-local-homedir.sh   {include if "with-pam-exec-homedir"}
+auth        optional                                     pam_exec.so /usr/local/sbin/create-local-homedir.sh    {include if "with-pam-exec-homedir"}
 auth        optional                                     pam_gnome_keyring.so only_if=login auto_start          {include if "with-pam-gnome-keyring"}
 auth        required                                     pam_deny.so
 

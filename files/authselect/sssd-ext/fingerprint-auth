@@ -7,6 +7,7 @@ auth        required                                     pam_faillock.so preauth
 auth        [success=done default=bad]                   pam_fprintd.so
 auth        required                                     pam_faillock.so authfail                               {include if "with-faillock"}
 auth        optional                                     pam_mount.so disable_interactive                       {include if "with-pam-mount"}
+auth        optional                                     pam_exec.so /usr/local/sbin/create-local-homedir.sh    {include if "with-pam-exec-homedir"}
 auth        optional                                     pam_gnome_keyring.so only_if=login auto_start          {include if "with-pam-gnome-keyring"}
 auth        required                                     pam_deny.so
 
@@ -29,4 +30,5 @@ session     [success=1 default=ignore]                   pam_succeed_if.so servi
 session     required                                     pam_unix.so
 session     optional                                     pam_sss.so
 session     optional                                     pam_mount.so disable_interactive                      {include if "with-pam-mount"}
+session     optional                                     pam_exec.so /usr/local/sbin/create-local-homedir.sh   {include if "with-pam-exec-homedir"}
 session     optional                                     pam_gnome_keyring.so only_if=login auto_start         {include if "with-pam-gnome-keyring"}

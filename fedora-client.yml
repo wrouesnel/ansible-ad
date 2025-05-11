@@ -29,7 +29,11 @@
   - name: Remove lightdm
     package:
       name:
+      - slick-greeter
+      - slick-greeter-cinnamon
       - lightdm
+      - lightdm-settings
+      - lightdm-gobject
       state: absent
 
   - name: Disable systemd-home
@@ -121,6 +125,8 @@
   - name: Write an SELinux policy extension for the startup system
     copy:
       content: |
+        module my-local 1.0;
+
         require {
           type systemd_logind_inhibit_var_run_t;
           type proc_t;
@@ -139,37 +145,18 @@
         allow xdm_t proc_t:filesystem associate;
         allow xdm_t self:dir { add_name write };
         allow xdm_t systemd_logind_inhibit_var_run_t:fifo_file getattr;
+      dest: /root/my-local.te
+      owner: root
+      group: root
+      mode: "0600"
 
-  # - name: Write an SELinux policy extension to allow oddjob_mkhomedir_t to be a bash script
-  #   copy:
-  #     content: |
-  #       module my-mkhomedir 1.0;
-
-  #       require {
-  #         type oddjob_mkhomedir_t;
-  #         type oddjob_mkhomedir_exec_t;
-  #         type bin_t;
-  #         type shell_exec_t;
-  #         class file { execute execute_no_trans map };
-  #         class dir write;
-  #       }
-  #       allow oddjob_mkhomedir_t shell_exec_t:file execute;
-  #       allow oddjob_mkhomedir_t bin_t:file execute;
-  #       allow oddjob_mkhomedir_t oddjob_mkhomedir_exec_t:file execute_no_trans;
-  #       allow oddjob_mkhomedir_t self:dir write;
-
-  #     dest: /root/my-mkhomedir.te
-  #     owner: root
-  #     group: root
-  #     mode: "0600"
-  
-  # - name: Compile and install the module
-  #   command: "{{item}}"
-  #   loop:
-  #   - /bin/bash -c 'semodule -r my-mkhomedir || /bin/true'
-  #   - checkmodule -M -m -o my-mkhomedir.mod my-mkhomedir.te
-  #   - semodule_package -o my-mkhomedir.pp -m my-mkhomedir.mod
-  #   - semodule -X 300 -i my-mkhomedir.pp
+  - name: Compile and install the module
+    command: "{{item}}"
+    loop:
+    - /bin/bash -c 'semodule -r my-local || /bin/true'
+    - checkmodule -M -m -o my-local.mod my-local.te
+    - semodule_package -o my-local.pp -m my-local.mod
+    - semodule -X 300 -i my-local.pp
 
   - name: Ensure cache directory exists
     file:
@@ -260,13 +247,6 @@
       line: fallback_homedir = /home/%u
     notify: restart sssd
 
-  # - name: Configure sssd
-  #   lineinfile:
-  #     path: /etc/sssd/sssd.conf
-  #     regexp: ^default_domain_suffix = .*
-  #     line: default_domain_suffix = {{ ad.domain_name }}
-  #     insertafter: "^\\[sssd\\]"
-
   - name: Configure sssd
     lineinfile:
       path: /etc/sssd/sssd.conf
@@ -305,16 +285,10 @@
   - name: Fix csd-color
     command: glib-compile-schemas --targetdir /usr/share/glib-2.0/schemas/ /usr/share/glib-2.0/schemas
 
-  # TODO: create-local-homedir.sh deployment + SELinux fixups.
-  # TODO: can create-local-homedir fit in a profile rather then in sshd/login/gdm-password?
-  # ln /usr/local/sbin/create-local-homedir{,-gdm}.sh
-  # semanage fcontext -a -t home_root_t /usr/local/home
-  # restorecon -v /usr/local/home
-  # semanage fcontext -a -t xdm_unconfined_exec_t /usr/local/sbin/create-local-homedir-gdm.sh
-  # restorecon -v /usr/local/sbin/create-local-homedir-gdm.sh
-
-  # If csd-color blows up:
-  # glib-compile-schemas --targetdir /usr/share/glib-2.0/schemas/ /usr/share/glib-2.0/schemas
+  - name: Configure pam_group
+    lineinfile:
+      path: /etc/security/group.conf
+      line: "*;*;%domain users;Al0000-2400;render,audio,video,dialout,colord"
 
   # [session_recording]
   # TODO
