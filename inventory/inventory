@@ -17,4 +17,4 @@ server-1.default.libvirt ansible_user=will ansible_password=ir2KaiL7miquofaash2u
 w10client.default.libvirt ansible_user=will ansible_password=rou3Ahyohhaedeiz0oka
 
 [fedora_clients]
-fed-client.default.libvirt ansible_user=root
+fed-client-1.default.libvirt ansible_user=root ansible_password=defaultpassword

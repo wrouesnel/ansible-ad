@@ -34,8 +34,7 @@
 
   - name: Disable systemd-home
     service:
-      name:
-      - systemd-homed
+      name: systemd-homed
       state: stopped
       enabled: false
 
@@ -51,6 +50,42 @@
 #     mountpoint="/home/%(USER)"
 #     options="sec=krb5i,cruid=%(USERUID),vers=3.0"
 # />
+
+  - name: Ensure a /usr/local/sbin dir exists
+    file:
+      path: /usr/local/sbin
+      state: directory
+      mode: "0755"
+      owner: root
+      group: root
+
+  - name: Configure SELinux
+    command: "{{item}}"
+    loop:
+    - semanage fcontext -a -t root_t /usr/local/sbin
+    - restorecon -v /usr/local/sbin
+
+  - name: Install the local home directories script
+    copy:
+      src: files/usr/local/sbin/create-local-homedir.sh
+      dest: /usr/local/sbin/create-local-homedir.sh
+      mode: "0755"
+      owner: root
+      group: root
+
+  - name: Install the local home directories script for GDM
+    copy:
+      src: files/usr/local/sbin/create-local-homedir.sh
+      dest: /usr/local/sbin/create-local-homedir-gdm.sh
+      mode: "0755"
+      owner: root
+      group: root
+
+  - name: Configure SELinux
+    command: "{{item}}"
+    loop:
+    - semanage fcontext -a -t xdm_unconfined_exec_t /usr/local/sbin/create-local-homedir-gdm.sh
+    - restorecon -v /usr/local/sbin/create-local-homedir-gdm.sh
 
   - name: Check if custom profile exists
     command: authselect show custom/sssd-ext
@@ -77,6 +112,91 @@
     - smartcard-auth
     - system-auth
 
+  - name: Enable mmap on files by domains
+    command: setsebool -P domain_can_mmap_files 1
+
+  - name: Enable polyinstantiation
+    command: setsebool -P polyinstantiation_enabled 1
+
+  - name: Write an SELinux policy extension for the startup system
+    copy:
+      content: |
+        require {
+          type systemd_logind_inhibit_var_run_t;
+          type proc_t;
+          type sshd_t;
+          type xdm_t;
+          class filesystem associate;
+          class dir { add_name write };
+          class fifo_file getattr;
+        }
+
+        #============= sshd_t ==============
+        allow sshd_t proc_t:filesystem associate;
+        allow sshd_t self:dir { add_name write };
+
+        #============= xdm_t ==============
+        allow xdm_t proc_t:filesystem associate;
+        allow xdm_t self:dir { add_name write };
+        allow xdm_t systemd_logind_inhibit_var_run_t:fifo_file getattr;
+
+  # - name: Write an SELinux policy extension to allow oddjob_mkhomedir_t to be a bash script
+  #   copy:
+  #     content: |
+  #       module my-mkhomedir 1.0;
+
+  #       require {
+  #         type oddjob_mkhomedir_t;
+  #         type oddjob_mkhomedir_exec_t;
+  #         type bin_t;
+  #         type shell_exec_t;
+  #         class file { execute execute_no_trans map };
+  #         class dir write;
+  #       }
+  #       allow oddjob_mkhomedir_t shell_exec_t:file execute;
+  #       allow oddjob_mkhomedir_t bin_t:file execute;
+  #       allow oddjob_mkhomedir_t oddjob_mkhomedir_exec_t:file execute_no_trans;
+  #       allow oddjob_mkhomedir_t self:dir write;
+
+  #     dest: /root/my-mkhomedir.te
+  #     owner: root
+  #     group: root
+  #     mode: "0600"
+  
+  # - name: Compile and install the module
+  #   command: "{{item}}"
+  #   loop:
+  #   - /bin/bash -c 'semodule -r my-mkhomedir || /bin/true'
+  #   - checkmodule -M -m -o my-mkhomedir.mod my-mkhomedir.te
+  #   - semodule_package -o my-mkhomedir.pp -m my-mkhomedir.mod
+  #   - semodule -X 300 -i my-mkhomedir.pp
+
+  - name: Ensure cache directory exists
+    file:
+      path: /var/cache/user
+      owner: root
+      group: root
+      mode: "0755"
+      state: directory
+
+  - name: Configure SELinux contexts for altered cache location 
+    command: "{{item}}"
+    loop:
+    - semanage fcontext -a -t cache_home_t /var/cache/user
+    - restorecon -v /var/cache/user
+
+  - name: Remap XDG_CACHE_HOME
+    lineinfile:
+      path: /etc/security/pam_env.conf
+      regexp: "^XDG_CACHE_HOME.*"
+      line: "XDG_CACHE_HOME\tDEFAULT=\"/var/cache/user/${USER}\""
+      state: present
+
+  - name: Configure /etc/environment globally
+    lineinfile:
+      path: /etc/environment
+      line: REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-certificates.crt
+
   - name: Ensure pam-mount is installed
     package:
       name: pam_mount
@@ -88,18 +208,19 @@
       insertafter: "\\s*<!--\\s*Volume definitions.*"
       marker: <!-- {mark} ANSIBLE MANAGED BLOCK -->
       block: |
-        <volume sgrp="domain users@{{ ad.domain_name }}"
+        <volume sgrp="domain users"
             fstype="cifs"
             server="server-1.{{ad.domain_name}}"
             path="Users$/%(USER)"
             mountpoint="/home/%(USER)"
-            options="sec=krb5i,cruid=%(USERUID),vers=3.0,nobrl,mfsymlinks"
+            options="sec=krb5i,cruid=%(USERUID),vers=default,nobrl,mfsymlinks,context=unconfined_u:object_r:user_home_t:s0"
         />
 
   # https://bugs.launchpad.net/ubuntu/+source/cifs-utils/+bug/1764778
   - name: Configure dconf to work over CIFS
     lineinfile:
       path: /etc/dconf/profile/user
+      insertbefore: BOF
       line: service-db:keyfile/user
 
   - name: Enable the new profile
@@ -107,6 +228,7 @@
       authselect select custom/sssd-ext 
         with-libvirt
         with-pam-mount
+        with-pam-exec-homedir
         with-pam-gnome-keyring
         with-smartcard
         with-subid
@@ -122,24 +244,66 @@
       regexp: ^services = .*
       line: services = nss, pam, ssh, sudo
       insertafter: "^\\[sssd\\]"
+    notify: restart sssd
 
   - name: Configure sssd
     lineinfile:
       path: /etc/sssd/sssd.conf
-      regexp: ^default_domain_suffix = .*
-      line: default_domain_suffix = {{ ad.domain_name }}
-      insertafter: "^\\[sssd\\]"
+      regexp: ^use_fully_qualified_names = .*
+      line: use_fully_qualified_names = False
+    notify: restart sssd
+
+  - name: Configure sssd fallback_homedir
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      regexp: ^fallback_homedir = .*
+      line: fallback_homedir = /home/%u
+    notify: restart sssd
+
+  # - name: Configure sssd
+  #   lineinfile:
+  #     path: /etc/sssd/sssd.conf
+  #     regexp: ^default_domain_suffix = .*
+  #     line: default_domain_suffix = {{ ad.domain_name }}
+  #     insertafter: "^\\[sssd\\]"
 
   - name: Configure sssd
     lineinfile:
       path: /etc/sssd/sssd.conf
       line: "[pam]"
+    notify: restart sssd
 
   - name: Configure sssd
     lineinfile:
       path: /etc/sssd/sssd.conf
       insertafter: "\\[pam\\]"
       line: pam_cert_auth = True
+    notify: restart sssd
+
+  - name: Configure SSH server to use SSSD authorized keys
+    copy:
+      content: |
+        # Site Configuration to use SSSD for known hosts
+        AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+      dest: /etc/ssh/ssh_config.d/90-site.conf
+      owner: root
+      group: root
+      mode: "0644"
+    notify: restart sshd
+
+  - name: Configure pam_sss_knownhosts
+    copy:
+      content: |
+        # Site Configuration to use SSSD for known hosts
+        GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
+        ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h
+      dest: /etc/ssh/ssh_config.d/90-site.conf
+      owner: root
+      group: root
+      mode: "0644"
+
+  - name: Fix csd-color
+    command: glib-compile-schemas --targetdir /usr/share/glib-2.0/schemas/ /usr/share/glib-2.0/schemas
 
   # TODO: create-local-homedir.sh deployment + SELinux fixups.
   # TODO: can create-local-homedir fit in a profile rather then in sshd/login/gdm-password?
@@ -154,3 +318,17 @@
 
   # [session_recording]
   # TODO
+  handlers:
+  - name: restart oddjobd
+    service:
+      name: oddjobd
+      state: restarted
+
+  - name: restart sshd
+    service:
+      name: sshd
+      state: restarted
+  - name: restart sssd
+    service:
+      name: sssd
+      state: restarted
