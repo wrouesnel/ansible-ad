@@ -130,16 +130,11 @@
         require {
           type systemd_logind_inhibit_var_run_t;
           type proc_t;
-          type sshd_t;
           type xdm_t;
           class filesystem associate;
           class dir { add_name write };
           class fifo_file getattr;
         }
-
-        #============= sshd_t ==============
-        allow sshd_t proc_t:filesystem associate;
-        allow sshd_t self:dir { add_name write };
 
         #============= xdm_t ==============
         allow xdm_t proc_t:filesystem associate;
@@ -182,6 +177,7 @@
   - name: Configure /etc/environment globally
     lineinfile:
       path: /etc/environment
+      regexp: "^REQUESTS_CA_BUNDLE.*"
       line: REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-certificates.crt
 
   - name: Ensure pam-mount is installed
