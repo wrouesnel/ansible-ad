@@ -196,7 +196,7 @@
             server="server-1.{{ad.domain_name}}"
             path="Users$/%(USER)"
             mountpoint="/home/%(USER)"
-            options="sec=krb5i,cruid=%(USERUID),vers=default,nobrl,mfsymlinks,context=unconfined_u:object_r:user_home_t:s0"
+            options="sec=krb5i,cruid=%(USERUID),vers=default,nobrl,mfsymlinks,cifsacl,context=unconfined_u:object_r:user_home_t:s0"
         />
 
   # https://bugs.launchpad.net/ubuntu/+source/cifs-utils/+bug/1764778
@@ -285,6 +285,94 @@
     lineinfile:
       path: /etc/security/group.conf
       line: "*;*;%domain users;Al0000-2400;render,audio,video,dialout,colord"
+
+  - name: Configure libsecret integration with keepassxc
+    lineinfile:
+      path: /usr/share/dbus-1/services/org.gnome.keyring.service
+      regexp: Exec=.*
+      line: Exec=/usr/local/sbin/keepassxc-gnome-wrapper
+
+  - name: Configure libsecret integration with keepassxc
+    lineinfile:
+      path: /usr/share/dbus-1/services/org.freedesktop.secrets.service
+      regexp: Exec=.*
+      line: Exec=/usr/local/sbin/keepassxc-gnome-wrapper
+
+  - name: Configure libsecret integration with keepassxc
+    lineinfile:
+      path: /usr/share/dbus-1/services/org.freedesktop.impl.portal.Secret.service
+      regexp: Exec=.*
+      line: Exec=/usr/local/sbin/keepassxc-gnome-wrapper
+
+  - name: Copy wrapper script for the keepassxc start
+    copy:
+      content: |
+        #!/bin/bash
+        opt_daemonize=0
+        while [ -n "$1" ]; do
+          case "$1" in
+            --daemonize)
+              opt_daemonize=1
+              ;;
+            *)
+            break
+          esac
+        done
+
+        if [ $opt_daemonize = 1 ]; then
+          exec /usr/sbin/keepassxc --minimized --pw-stdin ${HOME}/.login.kdbx
+        else
+          exec /usr/sbin/keepassxc --minimized ${HOME}/.login.kdbx
+        fi
+      dest: /usr/local/sbin/keepassxc-gnome-wrapper
+      owner: root
+      group: root
+      mode: "0755"
+
+  - name: Replace gnome-keyring-daemon with the script
+    file:
+      src: /usr/local/sbin/keepassxc-gnome-wrapper
+      dest: /usr/bin/gnome-keyring-daemon
+      owner: root
+      group: root
+      mode: "0755"
+      force: true
+      state: link
+
+  # TODO: Replace gnome-keyring with keepassxc
+  # See the  to fix the launch.
+  # 
+  # 
+
+# .config/keepassxc/keepassxc.ini
+# [General]
+# BackupBeforeSave=true
+# ConfigVersion=2
+# MinimizeAfterUnlock=true
+
+# [Browser]
+# CustomProxyLocation=
+
+# [FdoSecrets]
+# Enabled=true
+
+# [GUI]
+# MinimizeOnStartup=true
+# MinimizeToTray=true
+# ShowTrayIcon=true
+# TrayIconAppearance=colorful
+
+# [KeeShare]
+# Active="<?xml version=\"1.0\"?><KeeShare><Active/></KeeShare>\n"
+# Own="<?xml version=\"1.0\"?><KeeShare><PrivateKey>MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQClN69eH0maBUm0LF8MN+KNtdwrncVHraD6HH6ymVrjC+0Fno17a+SjS8hkETEIw0uYIy/xB+W5OAxR8jE9htKzu6ykYEF2zFxkL/k4Iwe/OCs+IL1rKObhE77gzR4zNBmGVqfWI3JuSR4xRcGgpOrLlE74DyvHFSrT00OvJ2m3V/U8kEDQzb4PbXupu+7NjCY0QrOI6w+J/6HpE3GNqmHij/2Wc/vNkVmkMmW4YAnfdr6PTkWQ6yIoDWIru3LuUC1+2FZ9xheodLHbLUa86Y13aHSiX52oz6WplBqWNm2WmqRJxV7kLwgvKQbNR0PiF7kozdz703VNinCPANEtNBZDAgMBAAECggEAAVeAmdSzr7bArioWwXArglcw3m0PKkyQCoRqZNOf3J5OoeyNARjLA9+QaSD5gN+jTX+ko0ntpyxF+BjlTlkBHEsh3xFDrqpp+zwNzBIErEcKSyIiNCKsKP+O+j6+zFggejssW9ibHoVbH1zD+D5I83BWerzBVqFvQa/MdT9R3RxIp1uJ0oCWyfSa36hJU0erAyGCm+6KnsUkzq+CtIpu6ARiJ17Z0OTniOYjBRWkKvglFcdQVVKyBxRzSpAcstxyDEKN1ZzI9eW2AhakVR9yd0DyI0hIcODCM8VFnmxVXwvQDqjiGX0y6eQyj6I6oixUgirxE65jR/jKmvrwZpkgmQKBgQDX9PQRAg3gFo2B3wIKcNCyUUOEvFwptHkAIBzNGR+9d6PipGoT+CwzkhjwxAIbgcs3fEU0GoNm5I0OyUdKfPTUb0Ruisr8iSiF9JfPJTVQnXgxHfl9hIEewwZ5+NUDV7Mq56w3/h0wxwIvTpKnOk74T7CFPNO6NqXE1O4q/KBqCwKBgQDD2jxLxRptemdSwfx+XT+ci57BYmu2tvK03u4Nrum+xElWQsJ0qBPmDTviqMr4D3aVeIrcXeus1fDrSl8YBcC6I8W18bXXy3C/29FscLe7nR88xn2R22b9wZAYm+K+5re5AfbtJFh6mDjhNM0IzFhKHlhY5Q4zEDBZbh3ezFxfqQKBgHs5PyaRSH+L/tSS/iQc+Ug2TFNp8yCs5LoomKaC5nSC1tWUwR6B5h7LB0YiYZ12cxFG7GntkvrcAIzmVrJvGHg6wQ5eTbLJRIEi7ph4/7HvGEzWcKypNc/qskBYtpsAqLAbn04Xxmo1s85whAe9op/XQL7V1W4UjoQAh6GpopK/AoGBAID9S7bvgr9V3ZUA1CX5jjqxLgbZpm15QpJjPM/gQmx05IQehenFBQ3/61AVsU/9BzHcaUBHzz9OzFR67/RnXY56nu182zHb+E80HFLaTfgPvJIPfIZCxSsdf6TljkoCtD/yDkoTJP7hIJ0aZGuGAiQWpkMt4NM6t00/HAcv+yq5AoGBAJFMmpgkFb27BtIP4x4e7aLGIwbVDsWeHTBjD4nuQmyyNQ7arPitunHYEvcRFrtLJpw1fWwJSHg/o5N0L/XTHuMt07PNm2gPy/rd93FiUMbT1ERYqMArEco/PX9jIOWJRDtmyJ43aeTPDTwHhvae1h1PxT99QgXKIGTKunoZFLV1</PrivateKey><PublicKey><Signer>john.everyman</Signer><Key>MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQClN69eH0maBUm0LF8MN+KNtdwrncVHraD6HH6ymVrjC+0Fno17a+SjS8hkETEIw0uYIy/xB+W5OAxR8jE9htKzu6ykYEF2zFxkL/k4Iwe/OCs+IL1rKObhE77gzR4zNBmGVqfWI3JuSR4xRcGgpOrLlE74DyvHFSrT00OvJ2m3V/U8kEDQzb4PbXupu+7NjCY0QrOI6w+J/6HpE3GNqmHij/2Wc/vNkVmkMmW4YAnfdr6PTkWQ6yIoDWIru3LuUC1+2FZ9xheodLHbLUa86Y13aHSiX52oz6WplBqWNm2WmqRJxV7kLwgvKQbNR0PiF7kozdz703VNinCPANEtNBZDAgMBAAECggEAAVeAmdSzr7bArioWwXArglcw3m0PKkyQCoRqZNOf3J5OoeyNARjLA9+QaSD5gN+jTX+ko0ntpyxF+BjlTlkBHEsh3xFDrqpp+zwNzBIErEcKSyIiNCKsKP+O+j6+zFggejssW9ibHoVbH1zD+D5I83BWerzBVqFvQa/MdT9R3RxIp1uJ0oCWyfSa36hJU0erAyGCm+6KnsUkzq+CtIpu6ARiJ17Z0OTniOYjBRWkKvglFcdQVVKyBxRzSpAcstxyDEKN1ZzI9eW2AhakVR9yd0DyI0hIcODCM8VFnmxVXwvQDqjiGX0y6eQyj6I6oixUgirxE65jR/jKmvrwZpkgmQKBgQDX9PQRAg3gFo2B3wIKcNCyUUOEvFwptHkAIBzNGR+9d6PipGoT+CwzkhjwxAIbgcs3fEU0GoNm5I0OyUdKfPTUb0Ruisr8iSiF9JfPJTVQnXgxHfl9hIEewwZ5+NUDV7Mq56w3/h0wxwIvTpKnOk74T7CFPNO6NqXE1O4q/KBqCwKBgQDD2jxLxRptemdSwfx+XT+ci57BYmu2tvK03u4Nrum+xElWQsJ0qBPmDTviqMr4D3aVeIrcXeus1fDrSl8YBcC6I8W18bXXy3C/29FscLe7nR88xn2R22b9wZAYm+K+5re5AfbtJFh6mDjhNM0IzFhKHlhY5Q4zEDBZbh3ezFxfqQKBgHs5PyaRSH+L/tSS/iQc+Ug2TFNp8yCs5LoomKaC5nSC1tWUwR6B5h7LB0YiYZ12cxFG7GntkvrcAIzmVrJvGHg6wQ5eTbLJRIEi7ph4/7HvGEzWcKypNc/qskBYtpsAqLAbn04Xxmo1s85whAe9op/XQL7V1W4UjoQAh6GpopK/AoGBAID9S7bvgr9V3ZUA1CX5jjqxLgbZpm15QpJjPM/gQmx05IQehenFBQ3/61AVsU/9BzHcaUBHzz9OzFR67/RnXY56nu182zHb+E80HFLaTfgPvJIPfIZCxSsdf6TljkoCtD/yDkoTJP7hIJ0aZGuGAiQWpkMt4NM6t00/HAcv+yq5AoGBAJFMmpgkFb27BtIP4x4e7aLGIwbVDsWeHTBjD4nuQmyyNQ7arPitunHYEvcRFrtLJpw1fWwJSHg/o5N0L/XTHuMt07PNm2gPy/rd93FiUMbT1ERYqMArEco/PX9jIOWJRDtmyJ43aeTPDTwHhvae1h1PxT99QgXKIGTKunoZFLV1</Key></PublicKey></KeeShare>\n"
+# QuietSuccess=true
+
+# [PasswordGenerator]
+# AdditionalChars=
+# ExcludedChars=
+
+# [SSHAgent]
+# Enabled=true
 
   # [session_recording]
   # TODO

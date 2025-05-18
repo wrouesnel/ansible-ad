@@ -8,6 +8,10 @@ function log() {
 # Log all output to syslog.
 exec 1> >(logger -s -t "$(basename "$0")") 2>&1
 
+if [ $EUID -ne 0 ]; then
+  exit 0
+fi
+
 PAM_UID=$(id -u "${PAM_USER}")
 PAM_GID=$(id -g "${PAM_USER}")
 
