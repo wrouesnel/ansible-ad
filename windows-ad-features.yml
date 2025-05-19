@@ -2,7 +2,7 @@
 # Deploy GPO to the domain 
 - hosts: ad_servers
   #become: yes
-  tasks:
+  tasks: []
   # - name: Install features
   #   ansible.windows.win_feature:
   #     name: FS-NFS-Service
@@ -11,6 +11,6 @@
   #     state: present
   #   register: win_feature
 
-  - name: Reboot if installing Web-Server feature requires it
-    ansible.windows.win_reboot:
-    when: win_feature.reboot_required
+  # - name: Reboot if installing Web-Server feature requires it
+  #   ansible.windows.win_reboot:
+  #   when: win_feature.reboot_required

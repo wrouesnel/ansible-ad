@@ -77,39 +77,39 @@
 
   # TODO: set-spn to add the nfs SPN to the PC
 
-  - name: Configure NFS shares
-    ansible.windows.win_powershell:
-      error_action: stop
-      script: |
-        $intendedAuthentication = "Krb5","Krb5i"
-        function makeNfsShare() {
-          New-NfsShare `
-            -Name "home" `
-            -Path "{{ ad_dirs.homes }}" `
-            -Authentication $intendedAuthentication `
-            -Permission readwrite `
-            -EnableUnmappedAccess $false `
-            -EnableAnonymousAccess $false
-        }
+  # - name: Configure NFS shares
+  #   ansible.windows.win_powershell:
+  #     error_action: stop
+  #     script: |
+  #       $intendedAuthentication = "Krb5","Krb5i"
+  #       function makeNfsShare() {
+  #         New-NfsShare `
+  #           -Name "home" `
+  #           -Path "{{ ad_dirs.homes }}" `
+  #           -Authentication $intendedAuthentication `
+  #           -Permission readwrite `
+  #           -EnableUnmappedAccess $false `
+  #           -EnableAnonymousAccess $false
+  #       }
 
-        try {
-          $share = Get-NfsShare -Name "home"
+  #       try {
+  #         $share = Get-NfsShare -Name "home"
           
-          $needsUpdate = $false
-          if ($share.AnonymousAccess) {
-            $needsUpdate = $true
-          }
-          if ($share.UnmappedUserAccess) {
-            $needsUpdate = $true
-          }
-          if (-not (-not (Compare-Object $share.Authentication $intendedAuthentication))) { 
-            $needsUpdate = $true
-          }
+  #         $needsUpdate = $false
+  #         if ($share.AnonymousAccess) {
+  #           $needsUpdate = $true
+  #         }
+  #         if ($share.UnmappedUserAccess) {
+  #           $needsUpdate = $true
+  #         }
+  #         if (-not (-not (Compare-Object $share.Authentication $intendedAuthentication))) { 
+  #           $needsUpdate = $true
+  #         }
 
-          if ($needsUpdate) {
-            Remove-NfsShare -Confirm:$false -Name "home"
-            makeNfsShare
-          }
-        } catch {
-          makeNfsShare
-        }
+  #         if ($needsUpdate) {
+  #           Remove-NfsShare -Confirm:$false -Name "home"
+  #           makeNfsShare
+  #         }
+  #       } catch {
+  #         makeNfsShare
+  #       }

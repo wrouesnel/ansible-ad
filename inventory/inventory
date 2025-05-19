@@ -8,13 +8,25 @@ windows_clients
 
 [linux:children]
 fedora_clients
+redhat_clients
+redhat_servers
 
 [ad_servers]
-server-1.default.libvirt ansible_user=will ansible_password=ir2KaiL7miquofaash2u first_node=true
-; #server-2.default.libvirt ansible_user=will ansible_password=Yeudeev3xie4seisahk5
+server-1.default.libvirt first_node=true
 
 [windows_clients]
 w10client.default.libvirt ansible_user=will ansible_password=rou3Ahyohhaedeiz0oka
 
 [fedora_clients]
 fed-client-1.default.libvirt ansible_user=root ansible_password=defaultpassword
+
+[redhat_clients]
+rhel-client-1.default.libvirt ansible_user=root ansible_password=defaultpassword
+
+[redhat_servers]
+# tang encryption server
+tang.default.libvirt
+# pixiecore network boot server
+pxe.default.libvirt
+# red hat satellite server
+rhsm.default.libvirt
