@@ -91,15 +91,58 @@
         Domain: "{{ad.domain_name}}"
     register: host_certificate_thumbprint
 
-  # - name: If needed issue cert
-  #   ansible.windows.win_powershell:
-  #     error_action: stop
-  #     script: |
-  #       $fqdn = [System.Net.Dns]::GetHostByName($env:computerName).HostName
-  #       # $certThumbprint = (Get-ChildItem -Path Cert:LocalMachine\MY | Where-Object {$_.Subject -Match $fqdn}).Thumbprint
+  - name: Install the ADCS Enrollment Policy Web Service 
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        [CmdletBinding()]
+        param (
+            [String]
+            $certThumbprint
+        )
+        # Policy service
+        try {
+          Install-AdcsEnrollmentPolicyWebService `
+            -AuthenticationType Kerberos `
+            -SSLCertThumbprint $certThumbprint `
+            -Force
+          $Ansible.Changed = $true
+        } catch {
+          if ($_.Exception.ErrorString.StartsWith("Setup could not add this role service because it already exists in the default Web site.")) {
+            $Ansible.Failed = $false
+            $Ansible.Changed = $false
+          } else {
+            throw $_.Exception
+          }
+        }
+      parameters:
+        certThumbprint: "{{host_certificate_thumbprint.result}}"
+  
+  - name: Ensure KDS root key exists
+    win_kdsrootkey:
+    delegate_to: "{{ groups.ad_servers | first }}"
+    run_once: true
 
-  #       Get-Certificate `
-  #           -Template "WebServer" `
-  #           -SubjectName $fqdn `
-  #           -DnsName $fqdn `
-  #           -CertStoreLocation "Cert:LocalMachine\MY"
+  - name: Ensure a service account for the CEP enrollment service exists
+    microsoft.ad.service_account:
+      identity: gMSG_CEP
+      dns_hostname: gMSA_CEP.{{ad.domain_name}}
+      description: GMSA for CEP
+      state: present
+      allowed_to_retrieve_password:
+        # Because of this module, we can just add the computer to it.
+        add:
+        - "{{ ansible_env.COMPUTERNAME }}$"
+      spn:
+        add:
+        - HTTP/{{inventory_hostname}}
+      # delegates:
+      #   add:
+      #   - rpcss/{{inventory_hostname}}
+      #   - HOST/{{inventory_hostname}}
+
+  - name: Install group managed service account
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        Install-ADServiceAccount gMSA_CES
