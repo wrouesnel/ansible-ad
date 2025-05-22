@@ -1,4 +1,19 @@
+# Ansible Auth
 
+Once machines domain join, we need to switch to Kerberos auth and delete local
+credentials. That's...annoyingly tricky. Process adapted from here: https://buildingtents.com/2025/01/15/using-kerberos-to-authenticate-winrm-for-ansible/
+
+It is very specific to the kvmboot style runners.
+
+# AD Helpers
+
+Unix `id` replacements:
+
+```
+$id = [Security.Principal.WindowsIdentity]::GetCurrent()
+$groups = $id.Groups | foreach-object {$_.Translate([Security.Principal.NTAccount])}
+$groups | select *
+```
 # ADCS
 
 Run as Domain Admin
@@ -14,12 +29,29 @@ Add-WindowsFeature ADCS-Online-Cert
 Install-WindowsFeature -name Web-Server -IncludeManagementTools
 
 # Install ADCS
-Install-AdcsCertificationAuthority -CAType EnterpriseRootCa
+Install-AdcsCertificationAuthority -CAType EnterpriseRootCa `
+    -CACommonName "Test Network Root CA" `
+    -CADistinguishedNameSuffix "DC=default,DC=libvirt" `
+    -HashAlgorithmName SHA512 `
+    -KeyLength 4096 `
+    -ValidityPeriod Years `
+    -ValidityPeriodUnits 20 `
+    -Force
 
 Import-Module ServerManager
 
+# Grant administrators permission to enroll web server certificates
+
+
+# Generate certificate for the webserver
 $fqdn = [System.Net.Dns]::GetHostByName($env:computerName).HostName
 $certThumbprint = (Get-ChildItem -Path Cert:LocalMachine\MY | Where-Object {$_.Subject -Match $fqdn}).Thumbprint
+
+Get-Certificate `
+    -Template "WebServer" `
+    -SubjectName $fqdn `
+    -DnsName $fqdn `
+    -CertStoreLocation "Cert:LocalMachine\MY"
 
 # Policy service
 Install-AdcsEnrollmentPolicyWebService -AuthenticationType Kerberos -SSLCertThumbprint $certThumbprint

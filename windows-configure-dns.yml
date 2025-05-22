@@ -1,0 +1,70 @@
+---
+# Configure DNS to work with the local AD servers
+# - hosts: windows:!ad_servers
+#   tasks: []
+
+# Get the addresses of the AD servers
+- hosts: ad_servers
+  become: no
+  tasks:
+  - name: get the identity of the primary adapter
+    ansible.windows.win_powershell:
+      script: |
+        $Ansible.Changed = $false
+        $Ansible.Result = Get-NetRoute -DestinationPrefix '0.0.0.0/0', '::/0' |
+          Sort-Object -Property { $_.InterfaceMetric + $_.RouteMetric } |
+          Select-Object -First 1
+    register: win_primary_nic
+  
+  - name: get the ip address of the primary adapter
+    ansible.windows.win_powershell:
+      script: |
+        [CmdletBinding()]
+        param (
+          $ifIndex
+        )
+        $Ansible.Changed = $false
+        $Ansible.Result = Get-NetIPAddress -InterfaceIndex $ifIndex | Where-Object { $_.AddressFamily -eq 2 }
+      parameters:
+        ifIndex: "{{win_primary_nic.result.InterfaceIndex}}"
+    register: win_primary_addr
+
+  - name: set the primary IP as a fact
+    set_fact:
+      primary_ip: "{{ win_primary_addr.result.IPAddress }}"
+
+- hosts: windows:!ad_servers
+  become: no
+  tasks:
+  - name: get the identity of the primary adapter
+    ansible.windows.win_powershell:
+      script: |
+        $Ansible.Changed = $false
+        $Ansible.Result = Get-NetRoute -DestinationPrefix '0.0.0.0/0', '::/0' |
+          Sort-Object -Property { $_.InterfaceMetric + $_.RouteMetric } |
+          Select-Object -First 1
+    register: win_primary_nic
+  
+  - name: set DNS server to AD server
+    ansible.windows.win_powershell:
+      script: |
+        [CmdletBinding()]
+        param (
+          $ifIndex,
+          $dnsServers
+        )
+        $Ansible.Changed = $false
+        $currentServers = (Get-DnsClientServerAddress -InterfaceIndex $ifIndex | Where-Object { $_.AddressFamily -eq 2 }).ServerAddresses
+        if ($currentServers -ne $dnsServers ) {
+          Set-DnsClientServerAddress -InterfaceIndex $ifIndex -ServerAddresses $dnsServers
+          $Ansible.Changed = $true
+        }
+
+      parameters:
+        ifIndex: "{{win_primary_nic.result.InterfaceIndex}}"
+        dnsServers: >-
+          {%- set dnsServers = [] -%}
+          {%- for name in groups["ad_servers"] -%}
+            {%- do dnsServers.append(hostvars[name].primary_ip) -%}
+          {%- endfor -%}
+          {{dnsServers}}

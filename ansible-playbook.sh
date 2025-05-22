@@ -14,6 +14,10 @@ source "${SCRIPT_DIR}/activate"
 
 pushd "${SCRIPT_DIR}" 1> /dev/null || exit 1
 
+# These need to be here so Kerberos authentication to synthetic windows clusters will work.
+export KRB5_CONFIG="${SCRIPT_DIR}/krb5.conf"
+export KRB5_KDC_PROFILE=/dev/null
+
 ansible-playbook "$@"
 result=$?
 

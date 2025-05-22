@@ -10,4 +10,4 @@
 - import_playbook: windows-ad-schema.yml
 - import_playbook: windows-ad-objects-sudoers.yml
 - import_playbook: windows-ad-domain-joiners.yml
-#- import_playbook: windows-adcs.yml
+- import_playbook: windows-adcs.yml

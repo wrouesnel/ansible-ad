@@ -1,7 +1,14 @@
+[all]
+
+[all:children]
+windows
+linux
+
 [windows]
 
 [windows:children]
 ad_servers
+adcs_servers
 windows_clients
 
 [linux]
@@ -14,14 +21,17 @@ redhat_servers
 [ad_servers]
 server-1.default.libvirt first_node=true
 
+[adcs_servers]
+adcs-1.default.libvirt
+
 [windows_clients]
-w10client.default.libvirt ansible_user=will ansible_password=rou3Ahyohhaedeiz0oka
+#w10client.default.libvirt
 
 [fedora_clients]
-fed-client-1.default.libvirt ansible_user=root ansible_password=defaultpassword
+fed-client-1.default.libvirt
 
 [redhat_clients]
-rhel-client-1.default.libvirt ansible_user=root ansible_password=defaultpassword
+rhel-client-1.default.libvirt
 
 [redhat_servers]
 # tang encryption server

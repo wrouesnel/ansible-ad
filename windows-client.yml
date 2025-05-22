@@ -1,4 +1,4 @@
-- hosts: windows-clients
+- hosts: windows:!ad_servers
   #become: yes
   tasks:
   - name: join host to domain automatic reboot
@@ -10,3 +10,17 @@
       #domain_ou_path: "OU=Windows,OU=Servers,DC=ansible,DC=vagrant"
       state: domain
       reboot: true
+    register: domain_joined
+
+  - name: If running with KVM boot credentials then remove them
+    vars:
+      ansible_connection: local
+    connection: local
+    file:
+      path: "{{playbook_dir}}/inventory/host_vars/{{inventory_hostname}}/kvmboot.yml"
+      state: absent
+    when: domain_joined.changed
+
+  - name: Reset connection to the host
+    meta: reset_connection
+    when: domain_joined.changed

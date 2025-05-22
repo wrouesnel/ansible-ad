@@ -21,4 +21,17 @@
       safe_mode_password: "{{ ad.safe_mode_password }}"
       reboot: true
     when: first_node|default(False)
+    register: domain_provisioned
 
+  - name: If running with KVM boot credentials then remove them
+    vars:
+      ansible_connection: local
+    connection: local
+    file:
+      path: "{{playbook_dir}}/inventory/host_vars/{{inventory_hostname}}/kvmboot.yml"
+      state: absent
+    when: domain_provisioned.changed
+
+  - name: Reset connection to the host
+    meta: reset_connection
+    when: domain_provisioned.changed

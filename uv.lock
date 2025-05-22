@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10, <4.0"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -49,7 +50,7 @@ dependencies = [
     { name = "passlib" },
     { name = "pygithub" },
     { name = "pytoml" },
-    { name = "pywinrm" },
+    { name = "pywinrm", extra = ["credssp", "kerberos"] },
     { name = "requests" },
     { name = "ruamel-yaml" },
 ]
@@ -70,7 +71,7 @@ requires-dist = [
     { name = "passlib", specifier = ">=1.7.4" },
     { name = "pygithub", specifier = ">=2.6.0" },
     { name = "pytoml", specifier = ">=0.1.21" },
-    { name = "pywinrm", specifier = ">=0.5.0" },
+    { name = "pywinrm", extras = ["credssp", "kerberos"], specifier = ">=0.5.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "ruamel-yaml", specifier = ">=0.18.6" },
 ]
@@ -559,6 +560,12 @@ crypto = [
 ]
 
 [[package]]
+name = "pykerberos"
+version = "1.2.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/e9/ae44ea7d7605df9e5ca1ed745a2c5672dc838a8398101051dd5f255b130d/pykerberos-1.2.4.tar.gz", hash = "sha256:9d701ebd8fc596c99d3155d5ba45813bd5908d26ef83ba0add250edb622abed4", size = 25046 }
+
+[[package]]
 name = "pynacl"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -612,6 +619,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5a/2f/d835c342c4b11e28beaccef74982e7669986c84bf19654c39f53c8b8243c/pywinrm-0.5.0.tar.gz", hash = "sha256:5428eb1e494af7954546cd4ff15c9ef1a30a75e05b25a39fd606cef22201e9f1", size = 40875 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/45/4340320145c225387f40ce412de1b209d991c322032e4922cc0a9935fd31/pywinrm-0.5.0-py3-none-any.whl", hash = "sha256:c267046d281de613fc7c8a528cdd261564d9b99bdb7c2926221eff3263b700c8", size = 48182 },
+]
+
+[package.optional-dependencies]
+credssp = [
+    { name = "requests-credssp" },
+]
+kerberos = [
+    { name = "pykerberos", marker = "sys_platform != 'win32'" },
+    { name = "winkerberos", marker = "sys_platform == 'win32'" },
 ]
 
 [[package]]
@@ -671,6 +687,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760", size = 131218 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6", size = 64928 },
+]
+
+[[package]]
+name = "requests-credssp"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "pyspnego" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bc/c3/de13b8598287440ab1df7eba97b93278d309dffb920f0163a09e089b71ec/requests-credssp-2.0.0.tar.gz", hash = "sha256:229afe2f6e1c9fabef64fc2bdf2a10e794ca6c4a0c00a687d53fbfaf7b8ee71d", size = 13349 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/8d/0330147347692deb564cbd72c7cc3aae3b4be148c5d521a1445c096c35cb/requests_credssp-2.0.0-py2.py3-none-any.whl", hash = "sha256:47c8b250eef663f9b55af179f341e823f1f7f63b8b2b9037063e641a2df4bfa3", size = 10118 },
 ]
 
 [[package]]
@@ -827,6 +857,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/aa/63/e53da845320b757bf29ef6a9062f5c669fe997973f966045cb019c3f4b66/urllib3-2.3.0.tar.gz", hash = "sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d", size = 307268 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/19/4ec628951a74043532ca2cf5d97b7b14863931476d117c471e8e2b1eb39f/urllib3-2.3.0-py3-none-any.whl", hash = "sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df", size = 128369 },
+]
+
+[[package]]
+name = "winkerberos"
+version = "0.12.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2d/75/86d470935167eb1c40d53498993e14cc021d9611a539d61c9b4202c291ab/winkerberos-0.12.2.tar.gz", hash = "sha256:ff91daed04727a0362892802ee093d8da11f08536393526bdf3bc64e04079faa", size = 35672 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/ac/c6ce495af45371ffd85a6a3d24c2ced679b8dbcf3b8c6beca093706b1620/winkerberos-0.12.2-cp310-cp310-win32.whl", hash = "sha256:f8b751bd5a28e6a9146f154bed395c30ce4f245448addc763f98cb8843879027", size = 25331 },
+    { url = "https://files.pythonhosted.org/packages/cb/7b/ad32174c3ed4710cd2ad8f20171f5061cb13603f091d714d5aa6b30d51f0/winkerberos-0.12.2-cp310-cp310-win_amd64.whl", hash = "sha256:4be3b0de548b80f52a6544dff9d571da6cdfde590176a01477358b3808b12dfa", size = 27670 },
+    { url = "https://files.pythonhosted.org/packages/91/12/23b29d359dee9f7a8243cb0040ea1834acd1af8cbc38cfe1c7ca82ab4ec0/winkerberos-0.12.2-cp311-cp311-win32.whl", hash = "sha256:ff2b2ec9b9246bbc05f0d4e6fe5f3f3563237357b9b35eaa58ec1a9ddf349ab8", size = 25332 },
+    { url = "https://files.pythonhosted.org/packages/23/d2/2bfa1dcdb4a47b7f989a9e758c892bd7393a156b0e1f0df63eca8304e892/winkerberos-0.12.2-cp311-cp311-win_amd64.whl", hash = "sha256:e6ac2b2cc329a68502821905f6ffe48e109d54a46aba7414ea231a30c75bb2d9", size = 27671 },
+    { url = "https://files.pythonhosted.org/packages/4f/01/26c5b1435654596c07b314653183ffe42b64ea07041c328f0fd4c68fe9f9/winkerberos-0.12.2-cp312-cp312-win32.whl", hash = "sha256:46dac1300e20738cbaf6c17c2e4832062ed7faee346c7a96f0e57f8bbe279c25", size = 25396 },
+    { url = "https://files.pythonhosted.org/packages/64/b1/6c4a1e4e50553798eb44dbb0d71ba6af48e2a62a0eb01bd0d4e2b41914e3/winkerberos-0.12.2-cp312-cp312-win_amd64.whl", hash = "sha256:2c5c7a70c0d4a43546b20d5654e7e7e5e5e96f42084a7f293864f7ad0fb1e953", size = 27710 },
+    { url = "https://files.pythonhosted.org/packages/5f/91/cff6750c7c3b2a9f35e12cd7c4df901251fc3be985edef707a3458c43e9a/winkerberos-0.12.2-cp313-cp313-win32.whl", hash = "sha256:482a72500b7822cc8f941d0c6eed668a24c030ac145c97732e175b51441bebbf", size = 25391 },
+    { url = "https://files.pythonhosted.org/packages/2a/98/defb037ad127c4006c4e992dd55ce0df92059626d3df5f5f4c5fc8502c26/winkerberos-0.12.2-cp313-cp313-win_amd64.whl", hash = "sha256:efd65ba54534512070916cb9c91ef9798a0f9fb0b04e12732c9631e71553fd69", size = 27704 },
 ]
 
 [[package]]

@@ -15,6 +15,14 @@ Order of operations:
 
 Use `windows-pull.yml` to yank down things which are hard to edit - namely GPOs.
 
+# Core Server Map
+
+server-1 192.168.122.2
+adcs-1 192.168.122.3
+tang 192.168.122.4
+rhsm 192.168.122.5
+pxe 192.168.122.6
+
 # Windows Server 2K22 Notes
 
 * Enable DEP exception for MSACCESS.exe
@@ -22,6 +30,7 @@ Use `windows-pull.yml` to yank down things which are hard to edit - namely GPOs.
 # Spin Up with KVM Boot
 
 ```bash
+# In the kvmboot repo
 ./prepare-windows-iso \
     --add-boot-drivers generated/virtio-2k22/virtio/vioscsi \
     --add-boot-drivers generated/virtio-2k22/virtio/viostor \
@@ -33,8 +42,24 @@ Use `windows-pull.yml` to yank down things which are hard to edit - namely GPOs.
     downloaded/SERVER_EVAL_x64FRE_en-us.iso \
     $(libvirt_default_pool)/win-2k22-Unattended-Virtio.iso \
     win-2k22-server-standard/autounattend.xml
-./kvmboot --efi --windows --installer win-2k22-Unattended-Virtio.iso Win2k22-Base
-./kvmboot --efi --windows lci.Win2k22-Base.root.qcow2 server-1
+kvmboot --efi --windows --installer win-2k22-Unattended-Virtio.iso Win2k22-Base
+
+kvmboot --efi --windows --ram 4G \
+    --static-networking 192.168.122.2/24:192.168.122.1:192.168.122.1 \
+    --ansible-creds "$(pwd)/inventory" \
+    lci.Win2k22-Base.root.qcow2 server-1
+
+```
+
+## ADCS Server Spin Up
+
+In fact all subsequent Windows servers should be spun up with DNS pointed to the AD
+
+```
+kvmboot --efi --windows --ram 4G \
+    --static-networking 192.168.122.3/24:192.168.122.1:192.168.122.2 \
+    --ansible-creds "$(pwd)/inventory" \
+    lci.Win2k22-Base.root.qcow2 adcs-1
 ```
 
 # RedHat / Fedora Notes

@@ -1,0 +1,28 @@
+- hosts: adcs_servers
+  #become: yes
+  tasks:
+  - name: Install required features
+    ansible.windows.win_feature:
+      name: 
+      - ADCS-Cert-Authority
+      - ADCS-Enroll-Web-Pol
+      - ADCS-Enroll-Web-Svc
+      - ADCS-Web-Enrollment
+      - ADCS-Device-Enrollment
+      - ADCS-Online-Cert
+      - Web-Server
+      include_management_tools: true
+      state: present
+
+  # - name: Issue certificates for the ADCS endpoint
+  #   ansible.windows.win_powershell:
+  #     error_action: stop
+  #     script: |
+  #       $fqdn = [System.Net.Dns]::GetHostByName($env:computerName).HostName
+  #       # $certThumbprint = (Get-ChildItem -Path Cert:LocalMachine\MY | Where-Object {$_.Subject -Match $fqdn}).Thumbprint
+
+  #       Get-Certificate `
+  #           -Template "WebServer" `
+  #           -SubjectName $fqdn `
+  #           -DnsName $fqdn `
+  #           -CertStoreLocation "Cert:LocalMachine\MY"

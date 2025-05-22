@@ -12,5 +12,6 @@
 /facts
 
 /inventory/host_vars/**/kvmboot.yml
+/inventory/host_vars/**/kvmboot-*.yml
 
 /tang.env
