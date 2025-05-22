@@ -1,0 +1,18 @@
+- hosts: windows
+  gather_facts: false
+  tasks:
+  - name: Get the current user identity
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $groups = $id.Groups | foreach-object {$_.Translate([Security.Principal.NTAccount])}
+        $groups | select *
+        $Ansible.result = @{
+          "id" = $id
+          "groups" = $groups
+        }
+    register: win_identity
+
+  - debug:
+      var: win_identity.result

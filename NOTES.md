@@ -30,7 +30,7 @@ Install-WindowsFeature -name Web-Server -IncludeManagementTools
 
 # Install ADCS
 Install-AdcsCertificationAuthority -CAType EnterpriseRootCa `
-    -CACommonName "Test Network Root CA" `
+    -CACommonName "default.libvirt Root CA" `
     -CADistinguishedNameSuffix "DC=default,DC=libvirt" `
     -HashAlgorithmName SHA512 `
     -KeyLength 4096 `

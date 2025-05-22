@@ -23,4 +23,9 @@
 
   - name: Reset connection to the host
     meta: reset_connection
-    when: domain_joined.changed
+
+  # Delete the local administrator account
+  # - name: Remove local administrator account
+  #   ansible.windows.win_user:
+  #     name: Administrator
+  #     state: absent

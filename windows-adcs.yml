@@ -11,10 +11,87 @@
       - ADCS-Device-Enrollment
       - ADCS-Online-Cert
       - Web-Server
+      - RSAT-AD-PowerShell
       include_management_tools: true
       state: present
 
-  # - name: Issue certificates for the ADCS endpoint
+  - name: Check for existing certificate authority
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        Import-Module ActiveDirectory
+        $rootDse = Get-ADRootDSE
+        [array]$domain_cas = Get-ChildItem "AD:CN=Certification Authorities,CN=Public Key Services,CN=Services,$($rootDse.configurationNamingContext)" | `
+          Select -ExpandProperty Name
+
+        $Ansible.result = $domain_cas
+    delegate_to: "{{ groups['ad_servers'] | first }}"
+    run_once: true
+    register: existing_cas
+    changed_when: false
+
+  - name: Determine CA name
+    set_fact:
+      ca_name: "{{ad.domain_name}} Root CA"
+
+  - name: Install Active Directory Certificate Services
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        Install-AdcsCertificationAuthority -CAType EnterpriseRootCa `
+          -CACommonName "{{ad.domain_name}} Root CA" `
+          -CADistinguishedNameSuffix "{{ad_dc}}" `
+          -HashAlgorithmName SHA512 `
+          -KeyLength 4096 `
+          -ValidityPeriod Years `
+          -ValidityPeriodUnits 20 `
+          -Force
+    when: not (ca_name in existing_cas.result)
+
+  # TODO: the win_acl setting should be able to handle this.
+
+  - name: Ensure Domain Computers can use the Web Server template
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        Import-Module ActiveDirectory
+        Import-Module ADCSTemplate
+
+        # This module is so good it just works!
+        Set-ADCSTemplateACL -DisplayName "Web Server" -Identity "Domain Computers" -Enroll -AutoEnroll
+
+  - name: Check for certificates for serving off this host
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        [CmdletBinding()]
+        param (
+            [String]
+            $InventoryHostname,
+            [String]
+            $Domain
+        )
+        $today = [DateTime]::Now
+        $certificate = Get-ChildItem -Path Cert:LocalMachine\MY | Where-Object {
+          ($_.DnsNameList -contains $InventoryHostname) -and $_.NotAfter -gt $today
+        } | Sort-Object NotAfter | Select-Object -Last 1
+
+        if ( $certificate -eq $null ) {
+          $certificate = Get-Certificate `
+            -Template "WebServer" `
+            -DnsName $InventoryHostname, "pki.$Domain" `
+            -CertStoreLocation "Cert:LocalMachine\MY"
+          $Ansible.Changed = $true
+        } else {
+          $Ansible.Changed = $false
+        }
+        $Ansible.result = $certificate.Thumbprint
+      parameters:
+        InventoryHostname: "{{inventory_hostname}}"
+        Domain: "{{ad.domain_name}}"
+    register: host_certificate_thumbprint
+
+  # - name: If needed issue cert
   #   ansible.windows.win_powershell:
   #     error_action: stop
   #     script: |

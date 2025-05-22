@@ -34,4 +34,3 @@
 
   - name: Reset connection to the host
     meta: reset_connection
-    when: domain_provisioned.changed

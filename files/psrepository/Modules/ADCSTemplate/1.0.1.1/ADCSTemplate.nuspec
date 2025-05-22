@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>ADCSTemplate</id>
+    <version>1.0.1.1</version>
+    <authors>Ashley McGlone</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/GoateePFE/ADCSTemplate/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/GoateePFE/ADCSTemplate</projectUrl>
+    <description>Create Certificate Template in ADCS
+by Ashley McGlone
+http://aka.ms/GoateePFE
+@GoateePFE
+
+Module of functions to export, import, permission, and remove AD CS templates.
+Includes DSC resource for importing templates from a JSON string.
+
+Requirements:
+-Enterprise AD CS PKI
+-Tested on 2012 R2 &amp; 2016
+-Enterprise Administrator rights
+-ActiveDirectory PowerShell Module
+-PowerShell v5.x</description>
+    <releaseNotes>1.0.0.0 - Initial release
+            1.0.1.0 - Fixed issues with DisplayName vs cn when working with the template objects, removed Deny/Read ACL possibility</releaseNotes>
+    <copyright></copyright>
+    <tags>DSCResource certificate template ADCS ActiveDirectoryCertificateServices ActiveDirectory encryption DSC CMS PSModule PSIncludes_Function PSFunction_Export-ADCSTemplate PSFunction_Get-ADCSTemplate PSFunction_New-ADCSDrive PSFunction_New-ADCSTemplate PSFunction_Remove-ADCSTemplate PSFunction_Set-ADCSTemplateACL PSCommand_Export-ADCSTemplate PSCommand_Get-ADCSTemplate PSCommand_New-ADCSDrive PSCommand_New-ADCSTemplate PSCommand_Remove-ADCSTemplate PSCommand_Set-ADCSTemplateACL PSIncludes_DscResource PSDscResource_ADCSTemplate</tags>
+  </metadata>
+</package>

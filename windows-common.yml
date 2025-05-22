@@ -10,3 +10,8 @@
     loop:
     - vscode
     - firefox
+
+  - name: Install the curated PS repository
+    ansible.windows.win_copy:
+      src: psrepository/Modules/
+      dest: 'C:\Program Files\WindowsPowerShell\Modules\'
