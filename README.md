@@ -71,9 +71,11 @@ be included in `tang.env`, and supplied with subsequent OEMDRV invocations.
 
 ## Tang Server Spin Up
 ```bash
-./kvmboot --src-pool iso \
-    --efi --video --installer \
-    --oemdrv "$HOME/src/ansible-ad/kickstarts/rhel9-tang/ks.cfg" \
+kvmboot --src-pool iso \
+    --efi --video --installer --ram 1G \
+    --oemdrv "$(pwd)/kickstarts/rhel9-tang/ks.cfg" \
+    --oemdrv "$(pwd)/files/etc/issue" \
+    --ansible-creds "$(pwd)/inventory" \
     rhel-9.6-x86_64-dvd.iso tang
 ```
 
@@ -81,21 +83,53 @@ The Tang server is configured to emit the key thumbprints on any available
 serial port at boot. The idea being you could capture these and use them to
 carry on your secure provisioning process.
 
+This server would be expected to be manually domain joined. For the purposes of
+this repo we expect these to be added to `tang.env` to allow subsequently booted
+machines to self-configure disk encryption.
+
 ## RHSM Server Spin Up
 
 (for the enterprisey config)
 
 ```bash
-./kvmboot --src-pool iso \
+kvmboot --src-pool iso \
     --efi --video --installer \
-    --oemdrv "$HOME/src/ansible-ad/kickstarts/rhel9-rhsm/ks.cfg" \
-    --oemdrv "$HOME/src/ansible-ad/tang.env" \ 
+    --oemdrv "$(pwd)/kickstarts/rhel9-rhsm/ks.cfg" \
+    --oemdrv "$(pwd)/tang.env" \ 
+    --oemdrv "$(pwd)/files/etc/issue" \
+    --ansible-creds "$(pwd)/inventory" \
     rhel-9.6-x86_64-dvd.iso rhsm
 ```
 
 Together these two commands and the kickstart files create a fairly secure setup:
 the root disk is default provisioned and bound to both the specific hardware
 (via the TPM) and the presence of the network server.
+
+## RHEL Cloud-Init
+
+This is designed to be run after the CA certificate is up. Under kvmboot the
+certificate will be named "default_libvirt-Root-CA.crt".
+
+```bash
+kvmboot --src-pool iso \
+    --efi --video --installer \
+    --oemdrv "$(pwd)/kickstarts/rhel9-cloudinit/ks.cfg" \
+    --oemdrv "$(pwd)/files/etc/issue" \
+    --oemdrv "$(pwd)/default_libvirt-Root-CA.crt" \
+    --ansible-creds "$(pwd)/inventory" \
+    rhel-9.6-x86_64-dvd.iso rhel9-cloudinit
+```
+
+Together these two commands and the kickstart files create a fairly secure setup:
+the root disk is default provisioned and bound to both the specific hardware
+(via the TPM) and the presence of the network server.
+
+### Using the Cloud-Init Image
+
+kvmboot \
+    --efi --video \
+    --ansible-creds "$(pwd)/inventory" \
+    lci.rhel9-cloudinit.root.qcow2 rhel-server-1
 
 # TODO:
 

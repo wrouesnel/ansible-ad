@@ -15,3 +15,5 @@
 /inventory/host_vars/**/kvmboot-*.yml
 
 /tang.env
+/*.crt
+

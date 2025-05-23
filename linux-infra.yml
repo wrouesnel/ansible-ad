@@ -1,3 +1,15 @@
-- hosts: rhsm.default.libvirt
+- hosts: rhel_like
   become: true
-  tasks: []
+  tasks:
+  - name: Install ansible management dependenices
+    package:
+      name:
+      - python3-libdnf5
+      state: present
+    ignore_errors: true
+    register: libdnf_failure
+    when: ansible_pkg_mgr in ["yum","dnf"]
+  
+  - name: Alternate package management fix
+    command: dnf install -y python3-libdnf5
+    when: libdnf_failure.failed|default(false) and ansible_pkg_mgr in ["yum","dnf"]

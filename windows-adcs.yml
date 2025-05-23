@@ -48,8 +48,79 @@
           -Force
     when: not (ca_name in existing_cas.result)
 
-  # TODO: the win_acl setting should be able to handle this.
+  - name: Check for existing certificate authority
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        [CmdletBinding()]
+        param (
+            [String]
+            $CAName
+        )
+        Import-Module ActiveDirectory
+        $rootDse = Get-ADRootDSE
+        $adConfigurationPath = (Get-ADRootDSE).configurationNamingContext
 
+        $certificates=(Get-ADObject `
+          -SearchBase "CN=Certification Authorities,CN=Public Key Services,CN=Services,$adConfigurationPath" `
+          -Properties cACertificate `
+          -Filter 'Name -eq "default.libvirt Root CA"').cACertificate
+
+        function ConvertTo-Base64 ([System.Byte[]] $Byte)
+        {
+            $straight = [System.Convert]::ToBase64String($Byte)
+
+            # Convert the string to base64 junks with a maximum length of 64
+            # characters per line.
+            $formatted = [System.Text.StringBuilder]::new()
+            for ($i = 0; $i -lt $straight.Length; $i += 64)
+            {
+                $formatted.AppendLine($straight.Substring($i, [System.Math]::Min(64, $straight.Length - $i))) | Out-Null
+            }
+
+            # Remove the new lines for the last empty line and store it as a simple
+            # string with newlines, no string array.
+            $formattedString = $formatted.ToString().TrimEnd("`n`r")
+
+            return $formattedString
+        }
+
+        # Return base64 encoded CA certificates
+        $Ansible.result = $certificates | % { 
+            $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($_)
+            $certificateBytes  = $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+            $certificateBase64 = ConvertTo-Base64 -Byte $certificateBytes
+
+            $outStringBuilder = [System.Text.StringBuilder]::new()
+            $outStringBuilder.AppendLine("-----BEGIN CERTIFICATE-----") | Out-Null
+            $outStringBuilder.AppendLine($certificateBase64) | Out-Null
+            $outStringBuilder.Append("-----END CERTIFICATE-----") | Out-Null
+
+            $outStringBuilder.ToString()
+        }
+      parameters:
+        CAName: "{{ad.domain_name}} Root CA"
+    delegate_to: "{{ groups['ad_servers'] | first }}"
+    run_once: true
+    register: current_ca_certificates
+    changed_when: false
+
+  - name: Save a concatenated trusted CA root
+    copy:
+      # This construct makes our lineendings generic
+      content: |
+        {% for certificate in current_ca_certificates.result %}
+        {% for line in certificate.split("\n") %}
+        {{line|trim}}
+        {% endfor %}
+
+        {% endfor %}
+      dest: "{{ca_name|replace(' ','-')|replace('.', '_') }}.crt"
+    connection: local
+    delegate_to: localhost
+    become: false
+
+  # TODO: the win_acl setting should be able to handle this.
   - name: Ensure Domain Computers can use the Web Server template
     ansible.windows.win_powershell:
       error_action: stop
