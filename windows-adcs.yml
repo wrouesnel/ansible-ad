@@ -117,32 +117,110 @@
         }
       parameters:
         certThumbprint: "{{host_certificate_thumbprint.result}}"
-  
+
   - name: Ensure KDS root key exists
     win_kdsrootkey:
     delegate_to: "{{ groups.ad_servers | first }}"
     run_once: true
 
-  - name: Ensure a service account for the CEP enrollment service exists
-    microsoft.ad.service_account:
-      identity: gMSG_CEP
-      dns_hostname: gMSA_CEP.{{ad.domain_name}}
-      description: GMSA for CEP
-      state: present
-      allowed_to_retrieve_password:
-        # Because of this module, we can just add the computer to it.
-        add:
-        - "{{ ansible_env.COMPUTERNAME }}$"
-      spn:
-        add:
-        - HTTP/{{inventory_hostname}}
-      # delegates:
-      #   add:
-      #   - rpcss/{{inventory_hostname}}
-      #   - HOST/{{inventory_hostname}}
-
-  - name: Install group managed service account
+  - name: Install the ADCS Enrollment Web Service
     ansible.windows.win_powershell:
       error_action: stop
       script: |
-        Install-ADServiceAccount gMSA_CES
+        [CmdletBinding()]
+        param (
+            [String]
+            $certThumbprint,
+            [String]
+            $caHost,
+            [String]
+            $caName
+        )
+        try {
+          Install-AdcsEnrollmentWebService `
+              -CAConfig "$caHost\$caName" `
+              -SSLCertThumbprint $certThumbprint `
+              -AuthenticationType Kerberos `
+              -Force
+        } catch {
+          if ($_.Exception.ErrorString.StartsWith("Setup could not add this role service because it already exists in the default Web site.")) {
+            $Ansible.Failed = $false
+            $Ansible.Changed = $false
+          } else {
+            throw $_.Exception
+          }
+        }
+      parameters:
+        certThumbprint: "{{host_certificate_thumbprint.result}}"
+        caHost: "{{inventory_hostname}}"
+        caName: "{{ existing_cas.result | first }}"
+
+  - name: Install the ADCS Online Responder
+    ansible.windows.win_powershell:
+      error_action: stop
+      script: |
+        try {
+          Install-AdcsOnlineResponder `
+              -Force
+        } catch {
+          if ($_.Exception.ErrorString.StartsWith("Setup could not add this role service because it already exists in the default Web site.")) {
+            $Ansible.Failed = $false
+            $Ansible.Changed = $false
+          } else {
+            throw $_.Exception
+          }
+        }
+
+  # These are a good idea but just about impossible to default install with, which makes management a total pain.
+  # - name: Ensure a service account for the NDES enrollment service exists
+  #   microsoft.ad.service_account:
+  #     identity: "{{ad_cs.ndes_service_account}}"
+  #     dns_hostname: "{{ad_cs.ndes_service_account}}.{{ad.domain_name}}"
+  #     description: GMSA for CEP
+  #     state: present
+  #     allowed_to_retrieve_password:
+  #       add:
+  #       - "{{ ansible_env.COMPUTERNAME }}$"
+
+  # - name: Install the ADCS Network Device Enrollment Web Service
+  #   ansible.windows.win_powershell:
+  #     error_action: stop
+  #     script: |
+  #       [CmdletBinding()]
+  #       param (
+  #           [String]
+  #           $certThumbprint,
+  #           [String]
+  #           $caHost,
+  #           [String]
+  #           $caName
+  #       )
+  #       try {
+  #         Install-AdcsNetworkDeviceEnrollmentService `
+  #             -CAConfig "$caHost\$caName" `
+  #             -ApplicationPoolIdentity `
+  #             -Force
+  #       } catch {
+  #         if ($_.Exception.ErrorString.StartsWith("Setup could not add this role service because it already exists in the default Web site.")) {
+  #           $Ansible.Failed = $false
+  #           $Ansible.Changed = $false
+  #         } else {
+  #           throw $_.Exception
+  #         }
+  #       }
+  #     parameters:
+  #       caHost: "{{inventory_hostname}}"
+  #       caName: "{{ existing_cas.result | first }}"
+
+  # - name: Install group managed service account
+  #   ansible.windows.win_powershell:
+  #     error_action: stop
+  #     script: |
+  #       Install-ADServiceAccount "{{ad_cs.cep_service_account}}"
+
+  # - name: Add the group managed service account to IIS_IUSRS
+  #   ansible.windows.win_group_membership:
+  #     name: IIS_IUSRS
+  #     members:
+  #     - "{{ad_cs.cep_service_account}}@{{ad.domain_name}}"
+  #     state: present

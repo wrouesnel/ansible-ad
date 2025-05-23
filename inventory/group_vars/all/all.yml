@@ -89,3 +89,6 @@ ad_users:
 ad_gpo:
   "Enable Remote Desktop":
     
+ad_cs:
+  cep_service_account: gMSA_CEP
+  ndes_service_account: gMSA_NDES

@@ -20,5 +20,4 @@ function fatal() {
 
 export KRB5_CONFIG="${SCRIPT_DIR}/krb5.conf"
 export KRB5_KDC_PROFILE=/dev/null
-
-exec kinit "$@"
+exec klist "$@"
